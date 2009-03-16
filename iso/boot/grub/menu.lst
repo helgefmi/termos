@@ -1,0 +1,8 @@
+timeout		5
+
+# Pretty colours
+color cyan/blue white/blue
+
+title		TermOS
+root		(cd)
+kernel	/kernel

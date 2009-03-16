@@ -1,8 +1,8 @@
-timeout		5
+timeout		0
 
 # Pretty colours
 color cyan/blue white/blue
 
 title		TermOS
 root		(cd)
-kernel	/kernel
+kernel	/kernel.bin

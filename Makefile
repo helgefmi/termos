@@ -4,7 +4,7 @@ CFLAGS=-nostdlib -nostdinc -fno-builtin -fno-stack-protector -Wall -Wextra
 LDFLAGS=-Tlink.ld
 ASFLAGS=-felf
 IMGTARGET=termos.iso
-KERNELTARGET=iso/kernel
+KERNELTARGET=iso/kernel.bin
 
 all: $(SOURCES) link
 

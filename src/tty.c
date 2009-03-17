@@ -40,7 +40,7 @@ void putchar(char c)
 
         case '\t':
             tty.x += 4;
-            tty.x = (tty.x >> 2) << 2;
+            tty.x &= 0xfc; /* Remove the last 2 bits making it aligned by 4 */
             break;
 
         default:

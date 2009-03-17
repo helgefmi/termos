@@ -3,16 +3,6 @@
 
 char *hex_table = "0123456789ABCDEF";
 
-/*
-int vprintf(const char *fmt, va_list args)
-{
-}
-
-int vfprintf(FILE *stream, const char *fmt, va_list args)
-{
-}
-*/
-
 int vsprintf(char *buf, const char *fmt, va_list args)
 {
     return vsnprintf(buf, INT_MAX, fmt, args);
@@ -89,8 +79,7 @@ int vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
                     reverse(buf, idxl, idxr);
                     break;
                 case 'd':
-                    /*
-                     * Same as hex(x) for base 10
+                    /* Same as hex(x) for base 10
                      */
                     i = va_arg(args, s32);
                     if(i < 0) {
@@ -121,3 +110,14 @@ int vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 
     return idx;
 }
+
+/*
+int vprintf(const char *fmt, va_list args)
+{
+}
+
+int vfprintf(FILE *stream, const char *fmt, va_list args)
+{
+}
+*/
+

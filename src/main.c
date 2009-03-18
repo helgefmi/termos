@@ -28,6 +28,8 @@ int main()
     init_gdt();
     init_idt();
 
+    asm volatile ("int $0x4"); 
+
     printf("\nBai!\n");
     return 0x12345678;
 }

@@ -20,7 +20,7 @@
 #include "common.h"
 #include "string.h"
 
-/* Defined in boot.S */
+/* Defined in asm.S */
 extern void gdt_flush();
 
 gdt_entry_t gdt_entries[3];

@@ -1,4 +1,4 @@
-SOURCES=src/boot.o src/main.o src/common.o src/tty.o src/string.o src/stdio.o src/stdarg.o src/mem.o src/ctype.o src/gdt.o src/idt.o
+SOURCES=src/asm.o src/main.o src/common.o src/tty.o src/string.o src/stdio.o src/stdarg.o src/mem.o src/ctype.o src/gdt.o src/idt.o
 
 CFLAGS=-nostdlib -nostdinc -fno-builtin -fno-stack-protector -Wall -Wextra
 LDFLAGS=-Tlink.ld

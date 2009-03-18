@@ -42,6 +42,8 @@ void isr_handler(registers_t);
 
 /* Need these for the location of the ISR's in memory
  * when setting up the IDT
+ *
+ * These are defined in asm.S
  */
 
 extern void isr0();

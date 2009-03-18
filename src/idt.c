@@ -19,7 +19,7 @@
 #include "string.h"
 #include "stdio.h"
 
-/* Defined in boot.S */
+/* Defined in asm.S */
 extern void idt_flush();
 
 idt_entry_t idt_entries[255];

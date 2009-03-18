@@ -3,14 +3,14 @@ SECTIONS
 {
   .text 0x100000 :
   {
-    code = .; _code = .; __code = .;
+    code = .;
     *(.text)
     . = ALIGN(4096);
   }
 
   .data :
   {
-     data = .; _data = .; __data = .;
+     data = .;
      *(.data)
      *(.rodata)
      . = ALIGN(4096);
@@ -18,10 +18,10 @@ SECTIONS
 
   .bss :
   {
-    bss = .; _bss = .; __bss = .;
+    bss = .;
     *(.bss)
     . = ALIGN(4096);
   }
 
-  end = .; _end = .; __end = .;
+  end = .;
 } 

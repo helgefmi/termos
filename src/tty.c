@@ -37,7 +37,7 @@ void init_tty()
 void puts(char *str)
 {
     /* Prints a string */
-    while(*str)
+    while (*str)
         putchar(*str++);
 }
 
@@ -73,12 +73,12 @@ void putchar(char c)
     {
         tty.x = 0;
         ++tty.y;
+    }
 
-        if (tty.y >= SCR_HEIGHT)
-        {
-            tty.y = SCR_HEIGHT-1;
-            tty_scroll();
-        }
+    if (tty.y >= SCR_HEIGHT)
+    {
+        tty.y = SCR_HEIGHT-1;
+        tty_scroll();
     }
 
     tty_move_cursor();

@@ -37,9 +37,6 @@ typedef struct
 
 void init_idt();
 
-void idt_set_gate(u8, u32, u16, u8);
-void isr_handler(registers_t);
-
 /* 
  * Need these for the location of the ISR's in memory
  * when setting up the IDT

@@ -25,7 +25,7 @@ void init_memory()
 {
     printf("Initializing memory..");
 
-    /* Both variables explained above */
+    /* Both explained above */
     mem_ptr = &end;
 
     printf("\tOK. Starting at %x.\n", mem_ptr);

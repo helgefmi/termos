@@ -15,37 +15,14 @@
  * along with TermOS.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _IRQ_H
-#define _IRQ_H
+#ifndef _ISR_H
+#define _ISR_H
 
 #include "common.h"
 
-/* IRQ numbers mapped to their IDT index */
-#define IRQ0  (32)
-#define IRQ1  (33)
-#define IRQ2  (34)
-#define IRQ3  (35)
-#define IRQ4  (36)
-#define IRQ5  (37)
-#define IRQ6  (38)
-#define IRQ7  (39)
-#define IRQ8  (40)
-#define IRQ9  (41)
-#define IRQ10 (42)
-#define IRQ11 (43)
-#define IRQ12 (44)
-#define IRQ13 (45)
-#define IRQ14 (46)
-#define IRQ15 (47)
+void isr_handler(registers_t);
 
-#define PIC1_CMD (0x20)
-#define PIC2_CMD (0xA0)
-#define PIC1_DATA (PIC1_CMD+1)
-#define PIC2_DATA (PIC2_CMD+1)
-
-#define PIC1_OFFSET (0x20)
-#define PIC2_OFFSET (0x28)
-
-void init_pic();
+typedef void (*isr_handler_t)(registers_t);
+void register_isr_handler(u8, isr_handler_t);
 
 #endif

@@ -20,34 +20,40 @@
 #include "common.h"
 #include "string.h"
 
-/* Defined in asm.S */
+/* Defined in gdt.s */
 extern void gdt_flush();
 
-gdt_entry_t gdt_entries[3];
+gdt_entry_t gdt_entries[5];
 gdt_ptr_t   gdt_ptr;
+
+static void gdt_set_gate(s32, u32, u32, u8, u8);
 
 void init_gdt()
 {
     printf("Initializing GDT..");
-    /* Used in flush_gdt to tell the processor where our GDT is, and it's size */
+
+    /* Used in flush_gdt to tell the processor where our GDT is, and its size */
     gdt_ptr.base = (u32)gdt_entries;
     gdt_ptr.limit = sizeof(gdt_entries) - 1;
 
-    /* For good measure and the NULL descriptor (idx 0) */
+    /* For good measure and the NULL descriptor (idx 0 in the GDT) */
     memset(gdt_entries, 0, sizeof(gdt_entries));
 
-    /* Code segment */
+    /* Kernel space code and data segment */
     gdt_set_gate(1, 0, 0xFFFFFFFF, 0x9A, 0xCF);
-
-    /* Data segment */
     gdt_set_gate(2, 0, 0xFFFFFFFF, 0x92, 0xCF);
+
+    /* Userspace code and data segment */
+    gdt_set_gate(3, 0, 0xFFFFFFFF, 0xFA, 0xCF);
+    gdt_set_gate(4, 0, 0xFFFFFFFF, 0xF2, 0xCF);
 
     /* And flush the GDT, making it active */
     gdt_flush();
+
     printf("\t\tOK. Installed %d entries at %x.\n", sizeof(gdt_entries)/sizeof(gdt_entry_t), gdt_ptr.base);
 }
 
-void gdt_set_gate(s32 idx, u32 base, u32 limit, u8 access, u8 gran)
+static void gdt_set_gate(s32 idx, u32 base, u32 limit, u8 access, u8 gran)
 {
     /* These are explained in gdt.h */
     gdt_entries[idx].base_low = base & 0xFFFF;

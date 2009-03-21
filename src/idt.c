@@ -19,41 +19,33 @@
 #include "string.h"
 #include "stdio.h"
 
-/* Defined in asm.S */
+/* Defined in idt.s */
 extern void idt_flush();
 
-idt_entry_t idt_entries[255];
+/* Defined in irq.s */
+extern void irq0();
+extern void irq1();
+extern void irq2();
+extern void irq3();
+extern void irq4();
+extern void irq5();
+extern void irq6();
+extern void irq7();
+extern void irq8();
+extern void irq9();
+extern void irq10();
+extern void irq11();
+extern void irq12();
+extern void irq13();
+extern void irq14();
+extern void irq15();
+
+static idt_entry_t idt_entries[255];
 idt_ptr_t idt_ptr;
 
-/* Used for more userfriendly errors due to interrupts */
-char* exception_names[] = {
-    "Division by zero exception",
-    "Debug exception",
-    "Non maskable interrupt",
-    "Breakpoint exception",
-    "Into detected overflow",
-    "Out of bounds exception",
-    "Invalid opcode exception",
-    "No coprocessor exception",
-    "Double fault",
-    "Coprocessor segment overrun",
-    "Bad TSS",
-    "Segment not present",
-    "Stack fault",
-    "General protection fault",
-    "Page fault",
-    "Unknown interrupt exception",
-    "Coprocessor fault",
-    "Alignment check exception",
-    "Machine check exception",
-    "Reserved", "Reserved", "Reserved", "Reserved",
-    "Reserved", "Reserved", "Reserved", "Reserved",
-    "Reserved", "Reserved", "Reserved", "Reserved", "Reserved",
-};
+static void idt_set_gate(u8, u32, u16, u8);
 
-/*
- * Set's up the IDT, redirecting every interrupt to isr_handler()
- */
+/* Set's up the IDT, redirecting every interrupt to isr_handler() and irq_handler() */
 void init_idt()
 {
     printf("Initializing IDT..");
@@ -97,16 +89,30 @@ void init_idt()
     idt_set_gate(30, (u32)isr30, 0x08, 0x8E);
     idt_set_gate(31, (u32)isr31, 0x08, 0x8E);
 
+    idt_set_gate(32, (u32)irq0 , 0x08, 0x8E);
+    idt_set_gate(33, (u32)irq1 , 0x08, 0x8E);
+    idt_set_gate(34, (u32)irq2 , 0x08, 0x8E);
+    idt_set_gate(35, (u32)irq3 , 0x08, 0x8E);
+    idt_set_gate(36, (u32)irq4 , 0x08, 0x8E);
+    idt_set_gate(37, (u32)irq5 , 0x08, 0x8E);
+    idt_set_gate(38, (u32)irq6 , 0x08, 0x8E);
+    idt_set_gate(39, (u32)irq7 , 0x08, 0x8E);
+    idt_set_gate(40, (u32)irq8 , 0x08, 0x8E);
+    idt_set_gate(41, (u32)irq9 , 0x08, 0x8E);
+    idt_set_gate(42, (u32)irq10, 0x08, 0x8E);
+    idt_set_gate(43, (u32)irq11, 0x08, 0x8E);
+    idt_set_gate(44, (u32)irq12, 0x08, 0x8E);
+    idt_set_gate(45, (u32)irq13, 0x08, 0x8E);
+    idt_set_gate(46, (u32)irq14, 0x08, 0x8E);
+    idt_set_gate(47, (u32)irq15, 0x08, 0x8E);
+
     /* Start using the ISR's we just set up! */
     idt_flush();
 
     printf("\t\tOK. Installed %d entries at %x.\n", sizeof(idt_entries)/sizeof(idt_entry_t), idt_ptr.base);
 }
 
-/*
- * Set an IDT entry in our idt_entries array
- */
-void idt_set_gate(u8 idx, u32 base, u16 sel, u8 flags)
+static void idt_set_gate(u8 idx, u32 base, u16 sel, u8 flags)
 {
     /* These are explained in idt.h */
     idt_entries[idx].base_lo = base & 0xFFFF;
@@ -116,26 +122,4 @@ void idt_set_gate(u8 idx, u32 base, u16 sel, u8 flags)
 
     idt_entries[idx].flags = flags;
     idt_entries[idx].sel = sel;
-}
-
-/*
- * Gets called when an interrupt occurs.
- */
-void isr_handler(registers_t regs)
-{
-    if (regs.int_no <= 18)
-    {
-        if (regs.int_no == 8 || (regs.int_no >= 10 && regs.int_no <= 14))
-        {
-            printf("%s: %d\n", exception_names[regs.int_no], regs.err_code);
-        }
-        else
-        {
-            printf("%s\n", exception_names[regs.int_no]);
-        }
-    }
-    else
-    {
-        printf("Unknown exception: %d\n", regs.int_no);
-    }
 }

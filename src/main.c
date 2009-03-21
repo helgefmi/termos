@@ -21,17 +21,20 @@
 #include "gdt.h"
 #include "idt.h"
 #include "irq.h"
+#include "timer.h"
 
 int main()
 {
     init_tty();
     init_memory();
     init_gdt();
+    init_pic();
     init_idt();
-    init_irq();
+    init_timer(100);
 
-    printf("\nBai!\n");
+    printf("\nStarting interrupts..\n\n");
+    asm volatile ("sti");
 
-    for(;;) ;
+    for(;;);
     return 0x12345678;
 }

@@ -38,6 +38,4 @@ typedef struct
 
 void init_gdt();
 
-void gdt_set_gate(s32, u32, u32, u8, u8);
-
 #endif

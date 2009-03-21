@@ -15,37 +15,36 @@
  * along with TermOS.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _IRQ_H
-#define _IRQ_H
+#include "timer.h"
+#include "stdio.h"
+#include "idt.h"
+#include "isr.h"
+#include "irq.h"
 
-#include "common.h"
+#define TIMER_CHAN1 (0x40)
+#define TIMER_CHAN2 (0x41)
+#define TIMER_CHAN3 (0x42)
+#define TIMER_CMD   (0x43)
 
-/* IRQ numbers mapped to their IDT index */
-#define IRQ0  (32)
-#define IRQ1  (33)
-#define IRQ2  (34)
-#define IRQ3  (35)
-#define IRQ4  (36)
-#define IRQ5  (37)
-#define IRQ6  (38)
-#define IRQ7  (39)
-#define IRQ8  (40)
-#define IRQ9  (41)
-#define IRQ10 (42)
-#define IRQ11 (43)
-#define IRQ12 (44)
-#define IRQ13 (45)
-#define IRQ14 (46)
-#define IRQ15 (47)
+u32 ticks = 0;
+void timer_callback(registers_t regs)
+{
+    ++ticks;
+    if(ticks%100 == 0)
+        printf("%d\n", ticks);
+}
 
-#define PIC1_CMD (0x20)
-#define PIC2_CMD (0xA0)
-#define PIC1_DATA (PIC1_CMD+1)
-#define PIC2_DATA (PIC2_CMD+1)
+void init_timer(u32 freq)
+{
+    printf("Setting up timer..");
 
-#define PIC1_OFFSET (0x20)
-#define PIC2_OFFSET (0x28)
+    register_isr_handler(IRQ0, &timer_callback);
 
-void init_pic();
+    u32 divisor = 1193180 / freq;
 
-#endif
+    outb(TIMER_CMD, 0x36);
+    outb(TIMER_CHAN1, divisor & 0xFF);
+    outb(TIMER_CHAN1, (divisor >> 8) & 0xFF);
+
+    printf("\t\tOK. Freq: %dhz\n", freq);
+ }

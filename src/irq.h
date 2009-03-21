@@ -15,23 +15,33 @@
  * along with TermOS.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef _IRQ_H
+#define _IRQ_H
+
 #include "common.h"
-#include "tty.h"
-#include "mem.h"
-#include "gdt.h"
-#include "idt.h"
-#include "irq.h"
 
-int main()
-{
-    init_tty();
-    init_memory();
-    init_gdt();
-    init_idt();
-    init_irq();
+void init_irq();
+void pic_send_eoi(int irq);
 
-    printf("\nBai!\n");
+typedef void (*irq_handler_t)(registers_t);
+void register_irq_handler(u8, irq_handler_t);
 
-    for(;;) ;
-    return 0x12345678;
-}
+/* These are defined in asm.s */
+extern void irq0();
+extern void irq1();
+extern void irq2();
+extern void irq3();
+extern void irq4();
+extern void irq5();
+extern void irq6();
+extern void irq7();
+extern void irq8();
+extern void irq9();
+extern void irq10();
+extern void irq11();
+extern void irq12();
+extern void irq13();
+extern void irq14();
+extern void irq15();
+
+#endif

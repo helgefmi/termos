@@ -51,6 +51,9 @@ char* exception_names[] = {
     "Reserved", "Reserved", "Reserved", "Reserved", "Reserved",
 };
 
+/*
+ * Set's up the IDT, redirecting every interrupt to isr_handler()
+ */
 void init_idt()
 {
     printf("Initializing IDT..");
@@ -59,7 +62,6 @@ void init_idt()
     idt_ptr.base = (u32)idt_entries;
     idt_ptr.limit = sizeof(idt_entries) - 1;
 
-    /* Must set everything to zero by default, so interrupts won't be fired without an ISR */
     memset(idt_entries, 0, sizeof(idt_entries));
 
     idt_set_gate( 0, (u32)isr0 , 0x08, 0x8E);
@@ -101,6 +103,9 @@ void init_idt()
     printf("\t\tOK. Installed %d entries at %x.\n", sizeof(idt_entries)/sizeof(idt_entry_t), idt_ptr.base);
 }
 
+/*
+ * Set an IDT entry in our idt_entries array
+ */
 void idt_set_gate(u8 idx, u32 base, u16 sel, u8 flags)
 {
     /* These are explained in idt.h */

@@ -130,7 +130,7 @@ void init_paging()
     u32 end = 0x1000000;
 
     /* How many frames are needed to map the whole memory size */
-    nframes = end >> 0x1000; /* divided by 0x1000 */
+    nframes = (end >> 12); /* divided by 0x1000 */
 
     /* Our bitmap of which frames are free or not */
     frames = (u32*)kmalloc_a(BIT_INDEX(nframes));

@@ -38,7 +38,7 @@ int main()
     printf("\nStarting interrupts..\n\n");
     asm volatile ("sti");
 
-    int *a = kmalloc(sizeof(int));
+    int *a = (int*)kmalloc(sizeof(int));
     *a = 5;
     printf("%x: %d\n", a, *a);
 

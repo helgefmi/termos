@@ -18,7 +18,7 @@
 #include "mem.h"
 #include "stdio.h"
 
-void *mem_ptr;  /* The start of which malloc will return memory from */
+u32 mem_ptr;  /* The start of which malloc will return memory from */
 extern int end; /* Defined in link.ld */
 
 void init_memory()
@@ -26,22 +26,39 @@ void init_memory()
     printf("Initializing memory..");
 
     /* Both explained above */
-    mem_ptr = &end;
+    mem_ptr = (u32)&end;
 
     printf("\tOK. Starting at %x.\n", mem_ptr);
 }
 
-void *malloc(size_t size)
+u32 kmalloc_a(size_t size)
 {
-    /* Very simplistic approach :) */
-    void *ret = mem_ptr;
+    mem_ptr &= 0xFFFFF000;
+    mem_ptr += 0x00001000;
+
+    return kmalloc(size);
+}
+
+u32 kmalloc_ap(size_t size, u32 *phys)
+{
+    mem_ptr &= 0xFFFFF000;
+    mem_ptr += 0x00001000;
+
+    *phys = mem_ptr;
+
+    return kmalloc(size);
+}
+
+u32 kmalloc(size_t size)
+{
+    u32 ret = mem_ptr;
+
     mem_ptr += size;
 
     return ret;
 }
 
-void free(void* ptr)
+void kfree(void* ptr)
 {
-    /* Does nothing right now */
     ptr = 0;
 }

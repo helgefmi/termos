@@ -25,14 +25,14 @@ int printf(const char *fmt, ...)
     va_list args;
     int i;
 
-    char* buf = malloc(1024);
+    char buf[1024];
     va_start(args, fmt);
-    i = vsprintf(buf, fmt, args);
+    i = vsprintf((char*)&buf, fmt, args);
     va_end(args);
 
     buf[i] = 0;
 
-    puts(buf);
+    puts((char*)&buf);
     return i;
 }
 

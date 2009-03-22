@@ -22,18 +22,25 @@
 #include "idt.h"
 #include "irq.h"
 #include "timer.h"
+#include "paging.h"
 
 int main()
 {
     init_tty();
     init_memory();
+
     init_gdt();
     init_pic();
     init_idt();
     init_timer(100);
+    init_paging();
 
     printf("\nStarting interrupts..\n\n");
     asm volatile ("sti");
+
+    int *a = kmalloc(sizeof(int));
+    *a = 5;
+    printf("%x: %d\n", a, *a);
 
     for(;;);
     return 0x12345678;

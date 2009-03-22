@@ -22,7 +22,9 @@
 
 void init_memory();
 
-void *malloc(size_t);
-void free(void*);
+u32 kmalloc(size_t);
+u32 kmalloc_a(size_t);
+u32 kmalloc_ap(size_t, u32*);
+void kfree(void*);
 
 #endif

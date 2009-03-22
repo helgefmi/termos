@@ -1,5 +1,5 @@
 ASM_SOURCES=src/asm/boot.o src/asm/gdt.o src/asm/idt.o src/asm/irq.o
-C_SOURCES=src/main.o src/common.o src/tty.o src/string.o src/stdio.o src/stdarg.o src/mem.o src/ctype.o src/gdt.o src/idt.o src/irq.o src/timer.o src/isr.o
+C_SOURCES=src/main.o src/common.o src/tty.o src/string.o src/stdio.o src/stdarg.o src/mem.o src/ctype.o src/gdt.o src/idt.o src/irq.o src/timer.o src/isr.o src/paging.o
 SOURCES=${ASM_SOURCES} ${C_SOURCES}
 
 CFLAGS=-nostdlib -nostdinc -fno-builtin -fno-stack-protector -Wall -Wextra

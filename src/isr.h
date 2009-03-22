@@ -20,9 +20,9 @@
 
 #include "common.h"
 
-void isr_handler(registers_t);
+void isr_handler(registers_t*);
 
-typedef void (*isr_handler_t)(registers_t);
+typedef void (*isr_handler_t)(registers_t*);
 void register_isr_handler(u8, isr_handler_t);
 
 #endif

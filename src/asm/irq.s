@@ -37,7 +37,13 @@ irq_common_stub:
     mov fs, ax
     mov gs, ax
 
+    mov eax, esp
+    push eax
+
     call irq_handler
+
+    pop eax
+    mov esp, eax
 
     pop ebx                     ; reload the original data segment descriptor
     mov ds, bx

@@ -54,28 +54,28 @@ void register_isr_handler(u8 num, isr_handler_t handler)
     isr_handlers[num] = handler;
 }
 
-void isr_handler(registers_t regs)
+void isr_handler(registers_t *regs)
 {
-    if (isr_handlers[regs.int_no])
+    if (isr_handlers[regs->int_no])
     {
-        isr_handlers[regs.int_no](regs);
+        isr_handlers[regs->int_no](regs);
     }
     else
     {
-        if (regs.int_no <= 31)
+        if (regs->int_no <= 31)
         {
-            if (regs.int_no == 8 || (regs.int_no >= 10 && regs.int_no <= 14))
+            if (regs->int_no == 8 || (regs->int_no >= 10 && regs->int_no <= 14))
             {
-                printf("%s: %d\n", exception_names[regs.int_no], regs.err_code);
+                printf("%s: %d\n", exception_names[regs->int_no], regs->err_code);
             }
             else
             {
-                printf("%s\n", exception_names[regs.int_no]);
+                printf("%s\n", exception_names[regs->int_no]);
             }
         }
         else
         {
-            printf("Unknown exception: %d\n", regs.int_no);
+            printf("Unknown exception: %d\n", regs->int_no);
         }
     }
 }
@@ -93,12 +93,12 @@ static void pic_send_eoi(int irq)
 }
 
 /* When an IRQ interrupt is sent, this will get called */
-void irq_handler(registers_t regs)
+void irq_handler(registers_t *regs)
 {
-    if (isr_handlers[regs.int_no])
+    if (isr_handlers[regs->int_no])
     {
-        isr_handlers[regs.int_no](regs);
+        isr_handlers[regs->int_no](regs);
     }
 
-    pic_send_eoi(regs.int_no-32);
+    pic_send_eoi(regs->int_no-32);
 }

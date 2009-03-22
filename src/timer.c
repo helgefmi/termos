@@ -27,7 +27,7 @@
 #define TIMER_CMD   (0x43)
 
 u32 ticks = 0;
-void timer_callback(registers_t regs)
+void timer_callback(registers_t *regs)
 {
     ++ticks;
     if(ticks%100 == 0)

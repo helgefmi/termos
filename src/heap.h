@@ -15,14 +15,34 @@
  * along with TermOS.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _MEM_H
-#define _MEM_H
+#ifndef _HEAP_H
+#define _HEAP_H
 
 #include "common.h"
 
-u32 kmalloc(size_t);
-u32 kmalloc_a(size_t);
-u32 kmalloc_ap(size_t, u32*);
-void kfree(void*);
+#define KHEAP_START (0xC0000000)
+#define KHEAP_INITIAL_SIZE (0x1000)
+
+typedef struct
+{
+    void *addr;
+    u32 size;
+    u8 allocated;
+    struct heap_obj *next;
+} heap_obj_t;
+
+typedef struct
+{
+    u32 start;
+    u32 size;
+    u32 allocated;
+    u32 in_use; /* not in use :) .. yet */
+    heap_obj_t *first_obj;
+} heap_t;
+
+void init_heap();
+void *alloc(u32);
+void free(void*);
+void debug_heap();
 
 #endif

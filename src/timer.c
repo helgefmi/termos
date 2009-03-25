@@ -30,14 +30,12 @@ u32 ticks = 0;
 void timer_callback(registers_t *regs)
 {
     ++ticks;
-    if(ticks%100 == 0)
+    if (ticks%100 == 0)
         printf("%d\n", ticks);
 }
 
 void init_timer(u32 freq)
 {
-    printf("Setting up timer..");
-
     register_isr_handler(IRQ0, &timer_callback);
 
     u32 divisor = 1193180 / freq;
@@ -45,6 +43,4 @@ void init_timer(u32 freq)
     outb(TIMER_CMD, 0x36);
     outb(TIMER_CHAN1, divisor & 0xFF);
     outb(TIMER_CHAN1, (divisor >> 8) & 0xFF);
-
-    printf("\t\tOK. Freq: %dhz\n", freq);
  }

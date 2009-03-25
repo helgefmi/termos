@@ -48,8 +48,6 @@ static void idt_set_gate(u8, u32, u16, u8);
 /* Set's up the IDT, redirecting every interrupt to isr_handler() and irq_handler() */
 void init_idt()
 {
-    printf("Initializing IDT..");
-
     /* Tell the processor where our entries are, and their size */
     idt_ptr.base = (u32)idt_entries;
     idt_ptr.limit = sizeof(idt_entries) - 1;
@@ -108,8 +106,6 @@ void init_idt()
 
     /* Start using the ISR's we just set up! */
     idt_flush();
-
-    printf("\t\tOK. Installed %d entries at %x.\n", sizeof(idt_entries)/sizeof(idt_entry_t), idt_ptr.base);
 }
 
 static void idt_set_gate(u8 idx, u32 base, u16 sel, u8 flags)

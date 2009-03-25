@@ -23,25 +23,24 @@
 #include "irq.h"
 #include "timer.h"
 #include "paging.h"
+#include "heap.h"
 
 int main()
 {
-    init_tty();
-    init_memory();
-
     init_gdt();
-    init_pic();
     init_idt();
-    init_timer(100);
     init_paging();
+    init_heap();
 
-    printf("\nStarting interrupts..\n\n");
+    tty_clear();
+    init_pic();
+    init_timer(100);
+
     asm volatile ("sti");
 
-    int *a = (int*)kmalloc(sizeof(int));
-    *a = 5;
-    printf("%x: %d\n", a, *a);
+    alloc(0x0ff1);
+    debug_heap();
 
-    for(;;);
+    for (;;);
     return 0x12345678;
 }

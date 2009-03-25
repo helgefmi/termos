@@ -23,8 +23,6 @@
 
 void init_pic()
 {
-    printf("Remapping the PIC..");
-
     /* Save the initial state of the data ports */
     u8 data1, data2;
     data1 = inb(PIC1_DATA);
@@ -48,6 +46,4 @@ void init_pic()
     /* Restore the initial state of the data ports */
     outb(PIC1_DATA, data1);
     outb(PIC2_DATA, data2);
-
-    printf("\t\tOK. PIC1=%x PIC2=%x\n", PIC1_OFFSET, PIC2_OFFSET);
 }

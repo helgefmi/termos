@@ -20,19 +20,7 @@
 #include "string.h"
 #include "ctype.h"
 
-tty_t tty;
-
-void init_tty()
-{
-    /* Video buffer adress */
-    tty.buf = (u16*)0xB8000;
-
-    /* Gray on white */
-    tty.attr = 0x07;
-
-    /* Start with a clean screen with cursor on the first index */
-    tty_clear();
-}
+tty_t tty = {(u16*)0xB8000, 0, 0, 0x07};
 
 void puts(char *str)
 {

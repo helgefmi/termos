@@ -18,7 +18,7 @@
 #include "stdarg.h"
 #include "tty.h"
 
-char hex_table[] = "0123456789ABCDEF";
+static char hex_table[] = "0123456789ABCDEF";
 
 int vsprintf(char *buf, const char *fmt, va_list args)
 {
@@ -26,10 +26,10 @@ int vsprintf(char *buf, const char *fmt, va_list args)
 }
 
 /* Helper function for vsnprintf*/
-void reverse(char *buf, size_t left, size_t right)
+static void reverse(char *buf, size_t left, size_t right)
 {
     char itmp;
-    for(;left < right; ++left, --right)
+    for (; left < right; ++left, --right)
     {
         itmp = buf[left];
         buf[left] = buf[right];
@@ -44,6 +44,7 @@ int vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 
     /* d, x */
     s32 i;
+    u32 ui;
     int idxl;
     int idxr;
 
@@ -77,10 +78,7 @@ int vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
                      * Then reverse the buffer containing the number
                      */
                     i = va_arg(args, s32);
-                    if(i < 0) {
-                        buf[idx++] = '-';
-                        i *= -1;
-                    }
+                    ui = (u32)i;
 
                     buf[idx++] = '0';
                     buf[idx++] = 'x';
@@ -88,9 +86,9 @@ int vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
                     idxl = idx;
                     do
                     {
-                        buf[idx++] = hex_table[(i&0xf)];
-                        i >>= 4;
-                    } while(i);
+                        buf[idx++] = hex_table[(ui&0xf)];
+                        ui >>= 4;
+                    } while (ui);
                     idxr = idx-1;
 
                     reverse(buf, idxl, idxr);
@@ -99,7 +97,7 @@ int vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
                     /* Same as hex(x) for base 10
                      */
                     i = va_arg(args, s32);
-                    if(i < 0) {
+                    if (i < 0) {
                         buf[idx++] = '-';
                         i *= -1;
                     }
@@ -109,7 +107,7 @@ int vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
                     {
                         buf[idx++] = '0' + (i%10);
                         i /= 10;
-                    } while(i);
+                    } while (i);
                     idxr = idx-1;
 
                     reverse(buf, idxl, idxr);

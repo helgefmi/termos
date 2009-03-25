@@ -30,8 +30,6 @@ static void gdt_set_gate(s32, u32, u32, u8, u8);
 
 void init_gdt()
 {
-    printf("Initializing GDT..");
-
     /* Used in flush_gdt to tell the processor where our GDT is, and its size */
     gdt_ptr.base = (u32)gdt_entries;
     gdt_ptr.limit = sizeof(gdt_entries) - 1;
@@ -49,8 +47,6 @@ void init_gdt()
 
     /* And flush the GDT, making it active */
     gdt_flush();
-
-    printf("\t\tOK. Installed %d entries at %x.\n", sizeof(gdt_entries)/sizeof(gdt_entry_t), gdt_ptr.base);
 }
 
 static void gdt_set_gate(s32 idx, u32 base, u32 limit, u8 access, u8 gran)

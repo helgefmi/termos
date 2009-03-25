@@ -17,45 +17,44 @@
 
 #include "mem.h"
 #include "stdio.h"
+#include "heap.h"
 
-u32 mem_ptr;  /* The start of which malloc will return memory from */
 extern int end; /* Defined in link.ld */
+u32 mem_ptr = (u32)&end;  /* The start of which malloc will return memory from */
 
-void init_memory()
+static u32 kmalloc_int(size_t size, int aligned, u32 *phys)
 {
-    printf("Initializing memory..");
+    if (aligned)
+    {
+        mem_ptr &= 0xFFFFF000;
+        mem_ptr += 0x00001000;
+    }
 
-    /* Both explained above */
-    mem_ptr = (u32)&end;
+    if (phys)
+    {
+        *phys = mem_ptr;
+    }
 
-    printf("\tOK. Starting at %x.\n", mem_ptr);
+    u32 tmp = mem_ptr;
+    mem_ptr += size;
+
+    return tmp;
 }
 
 u32 kmalloc_a(size_t size)
 {
-    mem_ptr &= 0xFFFFF000;
-    mem_ptr += 0x00001000;
-
-    return kmalloc(size);
+    return kmalloc_int(size, 1, 0);
 }
 
 u32 kmalloc_ap(size_t size, u32 *phys)
 {
-    mem_ptr &= 0xFFFFF000;
-    mem_ptr += 0x00001000;
 
-    *phys = mem_ptr;
-
-    return kmalloc(size);
+    return kmalloc_int(size, 1, phys);
 }
 
 u32 kmalloc(size_t size)
 {
-    u32 ret = mem_ptr;
-
-    mem_ptr += size;
-
-    return ret;
+    return kmalloc_int(size, 0, 0);
 }
 
 void kfree(void* ptr)

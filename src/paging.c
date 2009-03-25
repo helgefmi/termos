@@ -20,6 +20,7 @@
 #include "mem.h"
 #include "string.h"
 #include "isr.h"
+#include "heap.h"
 
 /* divide on 32 */
 #define BIT_INDEX(n) ((n) >> 5)
@@ -37,7 +38,7 @@ page_directory_t *kernel_directory,
 /*
 static u32 test_frame(u32 addr)
 {
-    addr >>= 12; // divide on 4096
+    addr >>= 12; // divide on 0x1000
     u32 idx = BIT_INDEX(addr);
     u32 off = BIT_OFFSET(addr);
     return frames[idx] & (0x1 << off);
@@ -46,7 +47,7 @@ static u32 test_frame(u32 addr)
 
 static void set_frame(u32 addr)
 {
-    addr >>= 12; /* divide on 4096 */
+    addr >>= 12; /* divide on 0x1000 */
     u32 idx = BIT_INDEX(addr);
     u32 off = BIT_OFFSET(addr);
     frames[idx] |= (0x1 << off);
@@ -54,7 +55,7 @@ static void set_frame(u32 addr)
 
 static void clear_frame(u32 addr)
 {
-    addr >>= 12; /* divide on 4096 */
+    addr >>= 12; /* divide on 0x1000 */
     u32 idx = BIT_INDEX(addr);
     u32 off = BIT_OFFSET(addr);
     frames[idx] &= ~(0x1 << off);
@@ -124,8 +125,6 @@ void free_frame(page_t *page)
 
 void init_paging()
 {
-    printf("Initializing paging..");
-
     /* Memory size */
     u32 end = 0x1000000;
 
@@ -141,11 +140,19 @@ void init_paging()
 
     current_directory = kernel_directory;
 
+    u32 idx;
+
+    /* Make the pages for our kernel heap now with the simple version of kmalloc
+     * before paging is initialized. Allocation will happen after the identity map */
+    for (idx = KHEAP_START; idx < KHEAP_START + KHEAP_INITIAL_SIZE; idx += 0x1000)
+    {
+        get_page(idx, 1, kernel_directory);
+    }
+
     /* Identity map the (so far) used memory,
      * so addresses used will still be valid after enabling paging.
      * This works since we start on 0 both in get_page and find_first() */
-    u32 idx;
-    for(idx = 0; idx < mem_ptr; idx += 0x1000)
+    for (idx = 0; idx < mem_ptr; idx += 0x1000)
     {
         alloc_frame( get_page(idx, 1, kernel_directory), 0, 0);
     }
@@ -154,7 +161,11 @@ void init_paging()
 
     switch_page_directory(kernel_directory);
 
-    printf("\tOK.");
+    /* Allocate the kernel heap pages */
+    for (idx = KHEAP_START; idx < KHEAP_START + KHEAP_INITIAL_SIZE; idx += 0x1000)
+    {
+        alloc_frame(get_page(idx, 0, kernel_directory), 0, 0);
+    }
 }
 
 void switch_page_directory(page_directory_t *dir)
@@ -171,8 +182,8 @@ void switch_page_directory(page_directory_t *dir)
 
 page_t *get_page(u32 addr, int make, page_directory_t *dir)
 {
-    u32 pagenum = addr >> 12; /* divided by 0x1000 */
-    u32 idx = pagenum >> 10; /* divided by 1024 */
+    u32 pagenum = addr >> 12;  /* divided by 0x1000 */
+    u32 idx = pagenum >> 10;   /* divided by 1024 */
     u32 off = pagenum & 0x3ff; /* modulus 1024 */
 
     if (dir->tables[idx])

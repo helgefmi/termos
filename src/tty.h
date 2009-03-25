@@ -32,8 +32,6 @@ typedef struct
     u8 attr;    /* Text attributes (colors, inverse, bold) */
 } tty_t;
 
-void init_tty();
-
 void putchar(char);
 void puts(char*);
 void tty_scroll();

@@ -42,11 +42,11 @@ mboot:
     dd  start
 
 [GLOBAL start]
-[EXTERN main]       ; Defined in main.c
+[EXTERN kmain]       ; Defined in main.c
 
 start:
-    push    ebx
+    push    ebx     ; Pointer to the multiboot header
     cli
-    call main
+    call kmain
     cli
     hlt

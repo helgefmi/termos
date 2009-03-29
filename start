@@ -1,1 +1,1 @@
-qemu -curses -cdrom termos.iso -boot d -m 512
+qemu -curses -cdrom termos.iso -boot d -m 256

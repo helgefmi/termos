@@ -106,7 +106,7 @@ void free_frame(page_t *page)
 void init_paging()
 {
     /* Memory size */
-    u32 end = 0x20000000;
+    u32 end = multiboot_header->mem_upper * 1000;
 
     /* How many frames are needed to map the whole memory size */
     nframes = (end >> 12); /* divided by 0x1000 */

@@ -19,7 +19,9 @@
 #define _COMMON_H
 
 #define INT_MAX (4294967295ul)
-#define PANIC(msg) printf("Kernel PANIC (%s:%d): %s\n", __FILE__, __LINE__, (msg)); asm volatile("cli;hlt")
+#define PANIC(msg) \
+    printf("Kernel PANIC (%s:%d): %s\n", __FILE__, __LINE__, (msg)); \
+    asm volatile("cli;hlt")
 
 typedef unsigned long long int  u64;
 typedef signed long long int    s64;
@@ -44,5 +46,7 @@ typedef struct registers
 void outb(u16, u8);
 u8 inb(u16);
 u16 inw(u16);
+
+extern int debug;
 
 #endif

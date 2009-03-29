@@ -15,6 +15,7 @@
  * along with TermOS.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "string.h"
 #include "common.h"
 #include "tty.h"
 #include "mem.h"
@@ -25,21 +26,39 @@
 #include "paging.h"
 #include "heap.h"
 
+int debug;
+extern page_directory_t *kernel_directory;
+
 int main()
 {
+    tty_clear();
+
     init_gdt();
     init_idt();
     init_paging();
     init_heap();
 
-    tty_clear();
     init_pic();
     init_timer(100);
 
-    asm volatile ("sti");
+    //asm volatile ("sti");
 
-    alloc(0x0ff1);
-    debug_heap();
+    printf("BEGIN\n");
+
+    void *a;
+    int i;
+
+    for(i=0; i < 10; ++i)
+    {
+        a = (void*)kmalloc_a(0x100000);
+        a = (void*)kmalloc(0x123);
+        kfree(a);
+    }
+
+    //debug_heap();
+
+    printf("END\n");
+    
 
     for (;;);
     return 0x12345678;

@@ -21,27 +21,25 @@
 #include "common.h"
 
 #define KHEAP_START (0xC0000000)
-#define KHEAP_INITIAL_SIZE (0x1000)
+#define KHEAP_INITIAL_SIZE (0x100000)
 
 typedef struct
 {
-    void *addr;
+    u32 addr;
     u32 size;
     u8 allocated;
-    struct heap_obj *next;
+    u32 next;
 } heap_obj_t;
 
 typedef struct
 {
-    u32 start;
     u32 size;
     u32 allocated;
-    u32 in_use; /* not in use :) .. yet */
     heap_obj_t *first_obj;
 } heap_t;
 
 void init_heap();
-void *alloc(u32);
+void *alloc(u32, int);
 void free(void*);
 void debug_heap();
 

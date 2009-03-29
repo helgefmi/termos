@@ -18,27 +18,50 @@
 #include "mem.h"
 #include "stdio.h"
 #include "heap.h"
+#include "paging.h"
 
+extern heap_t *kheap;
+extern page_directory_t *kernel_directory;
 extern int end; /* Defined in link.ld */
 u32 mem_ptr = (u32)&end;  /* The start of which malloc will return memory from */
 
 static u32 kmalloc_int(size_t size, int aligned, u32 *phys)
 {
-    if (aligned)
+    if (kheap)
     {
-        mem_ptr &= 0xFFFFF000;
-        mem_ptr += 0x00001000;
-    }
+        void *addr = alloc(size, aligned);
+        //printf("OK, got: %x in kmalloc\n", addr);
 
-    if (phys)
+        if (phys)
+        {
+            page_t *page = get_page((u32)addr, 0, kernel_directory);
+            if (!page->frame)
+            {
+                PANIC("Page doesn't have a frame in kmalloc_int!");
+            }
+            *phys = (page->frame * 0x1000) + ((u32)addr & 0xFFF);
+        }
+
+        return (u32)addr;
+    }
+    else
     {
-        *phys = mem_ptr;
+        if (aligned)
+        {
+            mem_ptr &= 0xFFFFF000;
+            mem_ptr += 0x00001000;
+        }
+
+        if (phys)
+        {
+            *phys = mem_ptr;
+        }
+
+        u32 tmp = mem_ptr;
+        mem_ptr += size;
+
+        return tmp;
     }
-
-    u32 tmp = mem_ptr;
-    mem_ptr += size;
-
-    return tmp;
 }
 
 u32 kmalloc_a(size_t size)
@@ -59,5 +82,12 @@ u32 kmalloc(size_t size)
 
 void kfree(void* ptr)
 {
-    ptr = 0;
+    if (kheap)
+    {
+        free(ptr);
+    }
+    else
+    {
+        PANIC("kfree called before kheap is set up!");
+    }
 }

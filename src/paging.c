@@ -15,6 +15,7 @@
  * along with TermOS.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "common.h"
 #include "paging.h"
 #include "stdio.h"
 #include "mem.h"
@@ -22,10 +23,12 @@
 #include "isr.h"
 #include "heap.h"
 
-/* divide on 32 */
-#define BIT_INDEX(n) ((n) >> 5)
-/* modulus 32 */
-#define BIT_OFFSET(n) ((n)&0x1F)
+#define BIT_IDX(n) ((n) >> 5)
+#define BIT_OFF(n) ((n)&0x1F)
+
+#define FRAME_SET(n) (frames[BIT_IDX((n))] |= (0x1 << BIT_OFF((n))))
+#define FRAME_CLR(n) (frames[BIT_IDX((n))] &= ~(0x1ul << BIT_OFF((n))))
+#define FRAME_TST(n) (famres[BIT_IDX((n))] & (0x1 << BIT_OFF((n))))
 
 u32 *frames;
 u32 nframes;
@@ -35,38 +38,11 @@ extern u32 mem_ptr;
 page_directory_t *kernel_directory,
                  *current_directory;
 
-/*
-static u32 test_frame(u32 addr)
-{
-    addr >>= 12; // divide on 0x1000
-    u32 idx = BIT_INDEX(addr);
-    u32 off = BIT_OFFSET(addr);
-    return frames[idx] & (0x1 << off);
-}
-*/
-
-static void set_frame(u32 addr)
-{
-    addr >>= 12; /* divide on 0x1000 */
-    u32 idx = BIT_INDEX(addr);
-    u32 off = BIT_OFFSET(addr);
-    frames[idx] |= (0x1 << off);
-}
-
-static void clear_frame(u32 addr)
-{
-    addr >>= 12; /* divide on 0x1000 */
-    u32 idx = BIT_INDEX(addr);
-    u32 off = BIT_OFFSET(addr);
-    frames[idx] &= ~(0x1 << off);
-}
-
-/* Finds the first unused frame (physical address). Used by alloc_frame */
 static u32 first_frame()
 {
     u32 idx, off;
 
-    for (idx = 0; idx < BIT_INDEX(nframes); ++idx)
+    for (idx = 0; idx < BIT_IDX(nframes); ++idx)
     {
         /* No point in checking an already full u32 */
         if (frames[idx] != 0xFFFFFFFF)
@@ -81,6 +57,7 @@ static u32 first_frame()
         }
     }
 
+    PANIC("No free frames!");
     return (u32)-1;
 }
 
@@ -89,15 +66,17 @@ void alloc_frame(page_t *page, int is_kernel, int is_writable)
     /* Return if the page is already connected to a frame */
     if (page->frame)
     {
+        //PANIC("page already has a frame in alloc_frame()");
         return;
     }
 
     /* Finds the first available frame by checking the bitmap */
-    u32 frame = first_frame();
+    u32 frame;
+    frame = first_frame();
 
     if (frame == (u32)-1)
     {
-        PANIC("No free frames!");
+        PANIC("Hm. No free frames!");
     }
 
     page->present = 1;
@@ -106,7 +85,7 @@ void alloc_frame(page_t *page, int is_kernel, int is_writable)
     page->frame = frame;
 
     /* Update the bitmap */
-    set_frame(page->frame * 0x1000);
+    FRAME_SET(page->frame);
 }
 
 void free_frame(page_t *page)
@@ -114,26 +93,27 @@ void free_frame(page_t *page)
     /* Return if the page isn't connected to a frame */
     if (!page->frame)
     {
+        PANIC("page doesn't have a frame in free_frame()");
         return;
     }
 
     page->present = 0;
 
     /* Update the bitmap */
-    clear_frame(page->frame * 0x1000);
+    FRAME_CLR(page->frame);
 }
 
 void init_paging()
 {
     /* Memory size */
-    u32 end = 0x1000000;
+    u32 end = 0x20000000;
 
     /* How many frames are needed to map the whole memory size */
     nframes = (end >> 12); /* divided by 0x1000 */
 
     /* Our bitmap of which frames are free or not */
-    frames = (u32*)kmalloc_a(BIT_INDEX(nframes));
-    memset(frames, 0, BIT_INDEX(nframes));
+    frames = (u32*)kmalloc_a(BIT_IDX(nframes));
+    memset(frames, 0, BIT_IDX(nframes));
 
     kernel_directory = (page_directory_t*) kmalloc_a(sizeof(page_directory_t));
     memset(kernel_directory, 0, sizeof(page_directory_t));
@@ -159,6 +139,7 @@ void init_paging()
 
     register_isr_handler(14, page_fault);
 
+    /* Enable paging */
     switch_page_directory(kernel_directory);
 
     /* Allocate the kernel heap pages */
@@ -194,13 +175,19 @@ page_t *get_page(u32 addr, int make, page_directory_t *dir)
     {
         u32 phys;
 
-        dir->tables[idx] = (page_table_t*)kmalloc_ap(sizeof(page_table_t), &phys);
+        //printf("Creating a new page table\n");
+
+        dir->tables[idx] = (page_table_t*) kmalloc_ap(sizeof(page_table_t), &phys);
         memset(dir->tables[idx], 0, sizeof(page_table_t));
+
+        //printf("asked for: %x, phys: %x addr: %x\n", addr, phys, dir->tables[idx]);
 
         dir->tablesPhysical[idx] = phys | 0x7;
 
         return &dir->tables[idx]->pages[off];
     }
+
+    PANIC("No page to get in get_page()!");
     
     return 0;
 }

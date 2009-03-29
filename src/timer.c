@@ -29,6 +29,8 @@
 u32 ticks = 0;
 void timer_callback(registers_t *regs)
 {
+    regs = 0; /* Just to stop the compilerwhine */
+
     ++ticks;
     if (ticks%100 == 0)
         printf("%d\n", ticks);

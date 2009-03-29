@@ -15,57 +15,125 @@
  * along with TermOS.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "string.h"
 #include "heap.h"
 #include "mem.h"
 #include "stdio.h"
+#include "paging.h"
 
 heap_t *kheap;
+extern page_directory_t *kernel_directory;
+static void debug_heap_obj(heap_obj_t*);
 
 void init_heap()
 {
+    /* Create the heap */
     kheap = (heap_t*) KHEAP_START;
-    kheap->start = KHEAP_START + sizeof(heap_t);
     kheap->size = KHEAP_INITIAL_SIZE;
-    kheap->first_obj = 0;
     kheap->allocated = 0;
-    kheap->in_use = 0;
+
+    /* Create a huge hole, using the initial size */
+    heap_obj_t *first = (heap_obj_t*) (KHEAP_START + sizeof(heap_t));
+    first->addr = (u32)first + sizeof(heap_obj_t);
+    first->allocated = 0;
+    first->size = KHEAP_INITIAL_SIZE - sizeof(heap_t) - sizeof(heap_obj_t);
+    first->next = 0;
+
+    /* Attach the hole to the heap */
+    kheap->first_obj = first;
 }
 
-void expand(u32 new_size)
+/* TODO: Make sure we always have enough space for a new page table allocation */
+void *alloc(u32 size, int aligned)
 {
-    new_size &= 0xFFFFF000;
-    new_size += 0x1000;
-
-    printf("old: %d, new: %d\n", kheap->size, new_size);
-
-    kheap->size = new_size;
-    PANIC("expand not made yet :-)");
-}
-
-void *alloc(u32 size)
-{
-    if( !size )
+    if (!size)
     {
         PANIC("alloc called without size");
     }
 
     heap_obj_t *current = (heap_obj_t*) kheap->first_obj,
                *last = 0,
-               *underflow_obj = 0;
+               *underflow_obj = 0,
+               *aligned_obj = 0;
 
     /* Try to find a hole that fits our size */
     while (current)
     {
+        /* We're looking for holes */
         if (!current->allocated)
         {
-            if (current->size == size) {
-                //printf("equalhole\n");
-                break;
+            /* If we ask for page aligned allocation, make sure we won't pick nodes which isn't page aligned */
+            if (!aligned || ((u32)current->addr & 0xFFF) == 0)
+            {
+                /* Perfect fit */
+                if (current->size == size) {
+                    //printf("equalhole\n");
+                    break;
+                }
+                else if (current->size > size + sizeof(heap_obj_t))
+                {
+                    //printf("makehole\n");
+
+                    /* Putting this here since we can :) Used for creating a hole if we don't need all the space of current */
+                    underflow_obj = (heap_obj_t*) (current->addr + size);
+                    break;
+                }
             }
-            else if (current->size > size + sizeof(heap_obj_t)) {
-                //printf("makehole\n");
-                underflow_obj = (heap_obj_t*) (current->addr + size);
-                break;
+            /* See if we can fit a page aligned addresse inside current's space */
+            else if (aligned)
+            {
+                u32 aligned_addr = (u32)current->addr & ~0xFFFul;
+                aligned_addr += 0x1000;
+
+                /* Do we have room on the left side to make the aligned_obj (without leaking memory)? */
+                if (aligned_addr - (u32)current->addr > sizeof(heap_obj_t))
+                {
+                    /* We want the *address* to be page aligned, not the object */
+                    aligned_obj = (heap_obj_t*) (aligned_addr - sizeof(heap_obj_t));
+
+                    u32 current_end = (u32)current->addr + current->size;
+                    u32 aligned_end = (u32)aligned_addr + size;
+
+                    /* Does it fit perfectly? */
+                    if (aligned_end == current_end)
+                    {
+                        //printf("perfect fit\n");
+
+                        aligned_obj->addr = aligned_addr;
+                        aligned_obj->size = size;
+                        aligned_obj->allocated = 1;
+
+                        aligned_obj->next = current->next;
+                        current->next = (u32)aligned_obj;
+                        current->size = (u32)aligned_obj - current->addr;
+
+                        kheap->allocated += size;
+                        return (void*) aligned_obj->addr;
+                    }
+                    /* It doesn't fit perfectly; we need to make an underflow_obj */
+                    else if (aligned_end < current_end + sizeof(heap_obj_t))
+                    {
+                        //printf("making underflow\n");
+
+                        aligned_obj->addr = aligned_addr;
+                        aligned_obj->size = size;
+                        aligned_obj->allocated = 1;
+
+                        underflow_obj = (heap_obj_t*) aligned_end;
+                        underflow_obj->addr = (u32)underflow_obj + sizeof(heap_obj_t);
+                        underflow_obj->size = current_end - (u32)underflow_obj->addr;
+                        underflow_obj->allocated = 0;
+
+                        current->size = (u32)aligned_obj - current->addr;
+
+                        underflow_obj->next = current->next;
+                        current->next = (u32)aligned_obj;
+                        aligned_obj->next = (u32) underflow_obj;
+
+                        kheap->allocated += size;
+                        return (void*) aligned_obj->addr;
+                    }
+                }
             }
         }
 
@@ -79,54 +147,62 @@ void *alloc(u32 size)
         if (underflow_obj)
         {
             //printf("underflow\n");
-            underflow_obj->addr = (void*) ((u32)underflow_obj + sizeof(heap_obj_t));
+            underflow_obj->addr = (u32)underflow_obj + sizeof(heap_obj_t);
             underflow_obj->size = current->size - size - sizeof(heap_obj_t);
             underflow_obj->allocated = 0;
 
             underflow_obj->next = current->next;
-            current->next = (struct heap_obj*)underflow_obj;
+            current->next = (u32) underflow_obj;
         }
     }
     else if (last)
     {
+        /* We didn't find anything and need to expand */
         //printf("last\n");
 
-        /* No holes fits our size; check if we need to expand before making a new heap object */
-        if (((u32)last->addr + last->size + sizeof(heap_obj_t) + size) > (kheap->start + kheap->size))
+        /* The end of last should always be the end of the heap at this point */
+        if ((u32)last->addr + last->size != KHEAP_START + kheap->size)
         {
-            expand(kheap->size + sizeof(heap_obj_t) + size);
-            return alloc(size);
+            printf("last->addr:%x, last->size:%d,\n"
+                   "kheap->addr:%x, kheap->size: %d\n", last->addr, last->size, KHEAP_START, kheap->size);
+            PANIC("last->addr + last->size != KHEAP_START + kheap->size");
         }
 
-        /* Make an allocated object right after the last one */
-        current = (heap_obj_t*) (last->addr + last->size);
-        current->addr = (void*) ((u32)current + sizeof(heap_obj_t));
-        current->next = 0;
+        /* We should at least expand with enough room for a page table allocation since this will happen alot */
+        u32 aligned_size = size & 0xFFFF0000;
+        aligned_size += 0x00010000;
 
-        last->next = (struct heap_obj*) current;
-    }
-    else
-    {
-        //printf("first\n");
-        /* Expand if we don't have enough room */
-        if (size + sizeof(heap_obj_t) > kheap->size)
+        u32 start = KHEAP_START + kheap->size;
+        u32 end = KHEAP_START + kheap->size + aligned_size;
+
+        //printf("allocating frames: %x <=> %x\n", start, end);
+        /* For each new address, make sure the page is allocated */
+        while (start < end)
         {
-            expand(kheap->size + sizeof(heap_obj_t) + size);
-            return alloc(size);
+            alloc_frame(get_page(start, 1, kernel_directory), 0, 0);
+            start += 0x1000;
         }
 
-        /* The first allocated heap object! */
-        current = (heap_obj_t*) (kheap->start);
-        current->addr = (void*) ((u32) current + sizeof(heap_obj_t));
-        current->next = 0;
+        /* Update the size of the heap and the last hole */
+        /* We need to find the last again, since alloc_frame might have currupted the current "last" */
+        last = (heap_obj_t*) kheap->first_obj;
+        while (last->next)
+        {
+            last = (heap_obj_t*) last->next;
+        }
 
-        kheap->first_obj = current;
+        last->size += aligned_size;
+        kheap->size += aligned_size;
+
+        /* We should have room in the heap now */
+        return alloc(size, aligned);
     }
 
     /* Common for all cases */
     current->allocated = 1;
     current->size = size;
     kheap->allocated += size;
+
     return (void*) current->addr;
 }
 
@@ -141,7 +217,7 @@ void free(void *addr)
     /* Find the heap object that has this address */
     while (current)
     {
-        if (current->addr == addr)
+        if (current->addr == (u32)addr)
             break;
         last = current;
         current = (heap_obj_t*) current->next;
@@ -175,28 +251,31 @@ void free(void *addr)
 }
 
 
-/* debug_heap not only tells us the state of our heap,
- * it also checks for errors/bugs in the alloc-implementation */
+static void debug_heap_obj(heap_obj_t* obj)
+{
+    printf("%x(%s): addr:%x, size:%d, next:%x\n", (u32)obj, obj->allocated ? "alloc" : "hole ", (u32)obj->addr, obj->size, (u32)obj->next);
+
+    if ((u32)obj->addr != (u32)obj + sizeof(heap_obj_t))
+    {
+        printf("\n\n%x != %x+%x\n", (u32)obj->addr, (u32)obj, sizeof(heap_obj_t));
+        PANIC("obj->addr != (u32)obj + sizeof(heap_obj_t)");
+    }
+
+    if (obj->next && ((u32)obj->addr + obj->size) != (u32)obj->next)
+    {
+        printf("%x + %x != %x\n", (u32)obj->next, (u32)obj->addr, obj->next);
+        PANIC("obj->addr + obj->size != obj->next");
+    }
+}
+
 void debug_heap()
 {
-    printf("Allocated: %d, In use: %d\n", kheap->allocated, kheap->in_use);
+    printf("Allocated: %d\n", kheap->allocated);
 
     heap_obj_t *current = (heap_obj_t*) kheap->first_obj;
     while (current)
     {
-        printf("%x: size(%d) %s\n", (u32)current->addr, current->size, current->allocated ? "alloacted" : "hole");
-
-        if ((u32)current->addr != (u32)current + sizeof(heap_obj_t))
-        {
-            printf("\n\n%x != %x+%x\n", (u32)current->addr, (u32)current, sizeof(heap_obj_t));
-            PANIC("current->addr != (u32)current + sizeof(heap_obj_t)");
-        }
-
-        if (current->next && ((u32)current->addr + current->size) != (u32)current->next)
-        {
-            PANIC("current->next && ((u32)current->addr + current->size) != (u32)current->next");
-        }
-
+        debug_heap_obj(current);
         current = (heap_obj_t*) current->next;
     }
 

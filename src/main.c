@@ -25,6 +25,7 @@
 #include "timer.h"
 #include "paging.h"
 #include "heap.h"
+#include "fs.h"
 
 int debug;
 extern page_directory_t *kernel_directory;
@@ -32,7 +33,7 @@ extern page_directory_t *kernel_directory;
 multiboot_header_t *multiboot_header;
 int kmain(multiboot_header_t *_multiboot_header)
 {
-    /* Storing this info so other components can use this info */
+    /* Storing this info so other components can use it */
     multiboot_header = _multiboot_header;
 
     tty_clear();
@@ -72,8 +73,6 @@ int kmain(multiboot_header_t *_multiboot_header)
 
     //asm volatile ("sti");
 
-    printf("BEGIN\n");
-
     void *a;
     int i;
 
@@ -85,8 +84,6 @@ int kmain(multiboot_header_t *_multiboot_header)
     }
 
     //debug_heap();
-
-    printf("END\n");
 
 
     for (;;);

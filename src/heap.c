@@ -258,7 +258,7 @@ static void debug_heap_obj(heap_obj_t* obj)
     if ((u32)obj->addr != (u32)obj + sizeof(heap_obj_t))
     {
         printf("\n\n%x != %x+%x\n", (u32)obj->addr, (u32)obj, sizeof(heap_obj_t));
-        PANIC("obj->addr != (u32)obj + sizeof(heap_obj_t)");
+        PANIC("obj->addr != obj + sizeof(heap_obj_t)");
     }
 
     if (obj->next && ((u32)obj->addr + obj->size) != (u32)obj->next)

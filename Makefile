@@ -9,9 +9,14 @@ IMGTARGET=termos.iso
 KERNELTARGET=iso/kernel.bin
 
 all: $(SOURCES) link
+	 cd initrd
+	 gcc -I initrd -o create_initrd initrd/create_initrd.c
+
+create_initrd: INITRD_SRC
 
 img: all
 	mkisofs -R -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 -boot-info-table -o $(IMGTARGET) iso
+	./create_initrd initrd/initrd_files iso/initrd.img
 
 clean:
 	rm -f *.iso src/*.o src/*/*.o $(KERNELTARGET)

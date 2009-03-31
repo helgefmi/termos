@@ -1,28 +1,36 @@
-ASM_SOURCES=src/asm/boot.o src/asm/gdt.o src/asm/idt.o src/asm/irq.o
-C_SOURCES=src/main.o src/common.o src/tty.o src/string.o src/stdio.o src/stdarg.o src/mem.o src/ctype.o src/gdt.o src/idt.o src/irq.o src/timer.o src/isr.o src/paging.o src/heap.o src/fs.o
-SOURCES=${ASM_SOURCES} ${C_SOURCES}
+ASM_SRC=src/asm/boot.o src/asm/gdt.o src/asm/idt.o src/asm/irq.o
+FS_SRC=src/fs/vfs.o src/fs/initrd.o
+KERNEL_SRC=src/kernel/common.o src/kernel/gdt.o src/kernel/idt.o src/kernel/irq.o src/kernel/isr.o src/kernel/timer.o src/kernel/tty.o
+LIB_SRC=src/lib/ctype.o src/lib/stdarg.o src/lib/stdio.o src/lib/string.o
+MM_SRC=src/mm/heap.o src/mm/mem.o src/mm/paging.o
+ROOT_SRC=src/kmain.o
 
-CFLAGS=-nostdlib -nostdinc -fno-builtin -fno-stack-protector -Wall -Wextra
+TERMOS_SRC=${ASM_SRC} ${FS_SRC} ${KERNEL_SRC} ${LIB_SRC} ${MM_SRC} ${ROOT_SRC}
+
+CFLAGS=-nostdlib -nostdinc -fno-builtin -fno-stack-protector -Wall -Wextra -I src/include
 LDFLAGS=-Tlink.ld
 ASFLAGS=-felf
-IMGTARGET=termos.iso
-KERNELTARGET=iso/kernel.bin
+IMG_TARGET=termos.iso
+KERNEL_TARGET=iso/kernel.bin
+INITRD_TARGET=iso/initrd.img
 
-all: $(SOURCES) link
-	 cd initrd
-	 gcc -I initrd -o create_initrd initrd/create_initrd.c
+all: termos initrd
 
-create_initrd: INITRD_SRC
+termos: $(TERMOS_SRC) link
+
+initrd: 
+	 gcc -I src/tools/ -o create_initrd src/tools/create_initrd.c
+	./create_initrd initrd_files $(INITRD_TARGET)
 
 img: all
-	mkisofs -R -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 -boot-info-table -o $(IMGTARGET) iso
-	./create_initrd initrd/initrd_files iso/initrd.img
+	mkisofs -R -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 -boot-info-table -o $(IMG_TARGET) iso
 
 clean:
-	rm -f *.iso src/*.o src/*/*.o $(KERNELTARGET)
+	find . -name "*.o" -exec rm {} \;
+	rm -f *.iso $(KERNEL_TARGET) $(INITRD_TARGET)
 
 link:
-	ld $(LDFLAGS) -o $(KERNELTARGET) $(SOURCES)
+	ld $(LDFLAGS) -o $(KERNEL_TARGET) $(TERMOS_SRC)
 
 .s.o:
 	nasm $(ASFLAGS) $<

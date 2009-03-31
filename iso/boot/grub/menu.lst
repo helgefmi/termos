@@ -5,4 +5,5 @@ color cyan/blue white/blue
 
 title		TermOS
 root		(cd)
-kernel	/kernel.bin
+kernel	    /kernel.bin
+module      /initrd.img

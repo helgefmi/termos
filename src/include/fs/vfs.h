@@ -20,67 +20,70 @@
 
 #include <kernel/common.h>
 
-#define FS_FILE        0x01
-#define FS_DIRECTORY   0x02
-#define FS_CHARDEVICE  0x03
-#define FS_BLOCKDEVICE 0x04
-#define FS_PIPE        0x05
-#define FS_SYMLINK     0x06
-#define FS_MOUNTPOINT  0x08
+/* defines for vnode->flags */
+#define V_FILE    0x01
+#define V_DIR     0x02
 
-#define MAX_FS_TYPES   32
+#define V_ISDIR(flags) ((flags) & V_DIR)
 
-#include <kernel/common.h>
+/* defines for vfs->flags */
+#define VFS_READ      0x01
 
-typedef struct dirent
+#define MAX_FSTYPES 32
+#define FSTYPE_INITRD 0
+
+struct vfs_ops;
+struct v_ops;
+struct vnode;
+
+struct vfs
 {
-    char name[128];
-    u32 ino; 
-} dirent_t;
+    struct vfs_ops *vfs_ops;
+    struct v_ops *v_ops;
+    struct vnode *v_root;
+    u32 vfs_flags;
+    u32 vfs_dev;
+    void *vfs_pdata;
+};
 
-struct fs_node;
-
-typedef u32 (*fs_read_t)(struct fs_node*, u32, u32, u8*);
-typedef u32 (*fs_write_t)(struct fs_node*, u32, u32, u8*);
-typedef void (*fs_open_t)(struct fs_node*);
-typedef void (*fs_close_t)(struct fs_node*);
-typedef struct dirent *(*fs_readdir_t)(struct fs_node*, u32);
-typedef struct fs_node *(*fs_finddir_t)(struct fs_node*, char*);
-
-typedef struct fs_type
+struct vnode
 {
-    fs_read_t read;
-    fs_write_t write;
-    fs_open_t open;
-    fs_close_t close;
-    fs_readdir_t readdir;
-    fs_finddir_t finddir;
-} fs_type_t;
+    char v_name[256];
+    struct vfs *v_vfs;
+    struct vfs *mount_vfs;
+    u8 v_flags;
+    u32 v_inode;
+    struct vnode *next;
+    struct vnode *prev;
+};
 
-typedef struct fs_node
+struct vfs_ops
 {
-    char name[128];
-    u32 mask;
-    u32 uid, gid;
-    u16 flags;         /* Includes the node type. See #defines above. */
-    u32 inode;         /* This is device-specific - provides a way for a filesystem to identify files. */
-    u32 size;          /* Size of the file, in bytes. */
-    u32 impl;          /* An implementation-defined number. */
-    struct fs_node *ptr;
-    struct fs_type *fs_type;
-} fs_node_t; 
+    int (*vfs_mount)(struct vfs*);
+};
 
-extern fs_node_t *fs_root;
+struct v_ops
+{
+    int (*v_read)();
+    int (*v_readdir)();
+};
 
-u32 read_fs(fs_node_t*, u32, u32, u8*);
-u32 write_fs(fs_node_t*, u32, u32, u8*);
-void open_fs(fs_node_t*, u8, u8);
-void close_fs(fs_node_t*);
-struct dirent *readdir_fs(fs_node_t*, u32);
-fs_node_t *finddir_fs(fs_node_t*, char*); 
+struct fs_type
+{
+    char name[32];
+    struct vfs_ops *vfs_ops;
+    struct v_ops *v_ops;
+};
 
-void register_fs(u32 type, fs_type_t*);
-fs_type_t *get_fstype(u32);
-fs_node_t *vfs_path_lookup(char*, fs_node_t*);
+void vfs_init();
+void register_fstype(int, struct fs_type*);
+
+struct vnode *create_empty_vnode();
+struct vnode *v_first_sibling(struct vnode*);
+struct vnode *v_parent(struct vnode*);
+
+void vfs_mount(struct vnode*, int, u32, u32);
+
+extern struct vnode *v_root;
 
 #endif

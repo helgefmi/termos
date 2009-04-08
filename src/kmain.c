@@ -31,18 +31,6 @@
 int debug;
 extern page_directory_t *kernel_directory;
 
-void ls(char* path)
-{
-    fs_node_t *node = vfs_path_lookup(path, 0);
-    dirent_t *dirent;
-    int i = 0;
-    while ((dirent = readdir_fs(node, i)) != 0)
-    {
-        printf("%s\n", dirent->name);
-        ++i;
-    }
-}
-
 multiboot_header_t *multiboot_header;
 int kmain(multiboot_header_t *_multiboot_header)
 {
@@ -51,10 +39,7 @@ int kmain(multiboot_header_t *_multiboot_header)
 
     tty_clear();
 
-    if (!multiboot_header->mods_count)
-    {
-        PANIC("initrd not found; need to be loaded as a module to GRUB");
-    }
+    ASSERT(multiboot_header->mods_count);
 
     u32 initrd_start = *((u32*) multiboot_header->mods_addr);
     u32 initrd_end   = *((u32*) (multiboot_header->mods_addr + 4));
@@ -71,7 +56,13 @@ int kmain(multiboot_header_t *_multiboot_header)
 
     asm volatile ("sti");
 
-    init_initrd(initrd_start);
+    vfs_init();
+    init_initrd();
+
+    vfs_mount(v_root, FSTYPE_INITRD, initrd_start, VFS_READ);
+
+    debug_heap();
+    printf("bai\n");
 
     return 0x12345678;
 }

@@ -41,10 +41,7 @@ static u32 kmalloc_int(size_t size, int aligned, u32 *phys)
         if (phys)
         {
             page_t *page = get_page((u32)addr, 0, kernel_directory);
-            if (!page->frame)
-            {
-                PANIC("Page doesn't have a frame in kmalloc_int!");
-            }
+            ASSERT(page->frame);
             *phys = (page->frame * 0x1000) + ((u32)addr & 0xFFF);
         }
 
@@ -88,12 +85,6 @@ u32 kmalloc(size_t size)
 
 void kfree(void* ptr)
 {
-    if (kheap)
-    {
-        free(ptr);
-    }
-    else
-    {
-        PANIC("kfree called before kheap is set up!");
-    }
+    ASSERT(kheap);
+    free(ptr);
 }

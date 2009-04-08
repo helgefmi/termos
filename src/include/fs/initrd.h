@@ -21,27 +21,32 @@
 #include <kernel/common.h>
 #include <fs/vfs.h>
 
-typedef struct initrd_header
+#define TYPE_FILE 0x1
+#define TYPE_DIR  0x2
+
+struct initrd_header
 {
     u32 size;
     u32 nodes;
-} initrd_header_t;
+};
 
-typedef struct initrd_node
+struct initrd_node
 {
      u32 inode;
      u8 type;
      u32 size;
      u32 data;
      u8 name[256];
-} __attribute__((__packed__)) initrd_node_t;
+} __attribute__((__packed__));
 
-void init_initrd(u32);
+struct initrd_mountpoint
+{
+    struct initrd_header *initrd_headers;
+    struct initrd_node *initrd_nodes;
+    u32 data_start;
+};
 
-u32 initrd_read(fs_node_t*, u32, u32, u8*);
-void initrd_open(fs_node_t*);
-void initrd_close(fs_node_t*);
-struct dirent *initrd_readdir(fs_node_t*, u32);
-fs_node_t *initrd_finddir(fs_node_t*, char*);
+void init_initrd();
+int initrd_mount(struct vfs*);
 
 #endif

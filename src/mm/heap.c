@@ -46,10 +46,7 @@ void init_heap()
 /* TODO: Make sure we always have enough space for a new page table allocation */
 void *alloc(u32 size, int aligned)
 {
-    if (!size)
-    {
-        PANIC("alloc called without size");
-    }
+    ASSERT(size);
 
     heap_obj_t *current = (heap_obj_t*) kheap->first_obj,
                *last = 0,
@@ -62,7 +59,7 @@ void *alloc(u32 size, int aligned)
         /* We're looking for holes */
         if (!current->allocated)
         {
-            /* If we ask for page aligned allocation, make sure we won't pick nodes which isn't page aligned */
+            /* If we ask for page aligned allocation, make sure we won't pick nodes with nonaligned addresses */
             if (!aligned || ((u32)current->addr & 0xFFF) == 0)
             {
                 /* Perfect fit */
@@ -161,14 +158,9 @@ void *alloc(u32 size, int aligned)
         //printf("last\n");
 
         /* The end of last should always be the end of the heap at this point */
-        if ((u32)last->addr + last->size != KHEAP_START + kheap->size)
-        {
-            printf("last->addr:%x, last->size:%d,\n"
-                   "kheap->addr:%x, kheap->size: %d\n", last->addr, last->size, KHEAP_START, kheap->size);
-            PANIC("last->addr + last->size != KHEAP_START + kheap->size");
-        }
+        ASSERT((u32)last->addr + last->size == KHEAP_START + kheap->size);
 
-        /* We should at least expand with enough room for a page table allocation since this will happen alot */
+        /* We should at least expand with enough room for a page table allocation to prevent endless recursive loops */
         u32 aligned_size = size & 0xFFFF0000;
         aligned_size += 0x00010000;
 
@@ -190,6 +182,8 @@ void *alloc(u32 size, int aligned)
         {
             last = (heap_obj_t*) last->next;
         }
+
+        ASSERT(!last->allocated);
 
         last->size += aligned_size;
         kheap->size += aligned_size;
@@ -224,10 +218,7 @@ void free(void *addr)
     }
 
     /* .. panic of not :) */
-    if (!current)
-    {
-        PANIC("Couldn't find memory to free");
-    }
+    ASSERT(current);
 
     current->allocated = 0;
     kheap->allocated -= current->size;
@@ -255,17 +246,8 @@ static void debug_heap_obj(heap_obj_t* obj)
 {
     printf("%x(%s): addr:%x, size:%d, next:%x\n", (u32)obj, obj->allocated ? "alloc" : "hole ", (u32)obj->addr, obj->size, (u32)obj->next);
 
-    if ((u32)obj->addr != (u32)obj + sizeof(heap_obj_t))
-    {
-        printf("\n\n%x != %x+%x\n", (u32)obj->addr, (u32)obj, sizeof(heap_obj_t));
-        PANIC("obj->addr != obj + sizeof(heap_obj_t)");
-    }
-
-    if (obj->next && ((u32)obj->addr + obj->size) != (u32)obj->next)
-    {
-        printf("%x + %x != %x\n", (u32)obj->next, (u32)obj->addr, obj->next);
-        PANIC("obj->addr + obj->size != obj->next");
-    }
+    ASSERT((u32)obj->addr == (u32)obj + sizeof(heap_obj_t));
+    ASSERT(!obj->next || ((u32)obj->addr + obj->size) == (u32)obj->next);
 }
 
 void debug_heap()

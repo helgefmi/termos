@@ -20,9 +20,17 @@
 
 #define INT_MAX (4294967295ul)
 #define PANIC(msg) \
+    { \
     printf("Kernel PANIC (%s:%d): %s\n", __FILE__, __LINE__, (msg)); \
-    asm volatile("cli;hlt")
+    asm volatile("cli;hlt"); \
+    }
 
+#define ASSERT(expr) \
+    if (!(expr)) \
+    { \
+        printf("%s\n", #expr); \
+        PANIC("Failed assertion"); \
+    }
 typedef unsigned long long int  u64;
 typedef signed long long int    s64;
 typedef unsigned long int       u32;

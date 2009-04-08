@@ -18,6 +18,50 @@
 #include <lib/string.h>
 #include <kernel/common.h>
 
+char *strncpy(char *dst, const char *src, u32 size)
+{
+    char *tmp = dst;
+
+    while (*src && size)
+    {
+        *dst++ = *src++;
+        --size;
+    }
+    while (size)
+    {
+        *dst++ = '\0';
+        --size;
+    }
+
+    return tmp;
+}
+
+char *strcpy(char *dst, const char *src)
+{
+    char *tmp = dst;
+
+    while (*src)
+    {
+        *dst++ = *src++;
+    }
+    *dst = '\0';
+
+    return tmp;
+}
+
+int strcmp(const char *s1, const char *s2)
+{
+    for (;*s1 && *s2; ++s1, ++s2)
+    {
+        if (*s1 < *s2)
+            return -1;
+        else if (*s1 > *s2)
+            return 1;
+    }
+
+    return 0;
+}
+
 void *memset(void *src, int c, size_t num)
 {
     u8 *src_u8 = src;

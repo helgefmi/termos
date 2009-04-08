@@ -15,108 +15,65 @@
  * along with TermOS.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <fs/vfs.h>
 #include <lib/stdio.h>
 #include <lib/string.h>
+#include <mm/mem.h>
+#include <fs/vfs.h>
 
-#define ASSERT_FS_SUPPORT(node) \
-    if ((node)->fs_type == 0) \
-    { \
-        PANIC("FS not supported"); \
+struct vnode *v_root;
+struct fs_type fstypes[MAX_FSTYPES] = {{"",0,0},};
+
+void vfs_init()
+{
+    v_root = create_empty_vnode();
+    v_root->v_name[0] = '/';
+    v_root->v_flags = V_DIR;
+}
+
+void vfs_mount(struct vnode *node, int fsnum, u32 dev, u32 flags)
+{
+    if (!V_ISDIR(node->v_flags))
+    {
+        PANIC("Mountpoint is not a directory");
+    }
+    if (node->mount_vfs)
+    {
+        PANIC("Mountpoint is already mounted");
     }
 
-#define ASSERT_FS_ISDIR(node) \
-    if (((node)->flags & FS_DIRECTORY) == 0) \
-    { \
-        PANIC("finddir() on a nondirectory"); \
+    struct vfs *new_vfs = (struct vfs*)kmalloc(sizeof(struct vfs));
+    struct vnode *new_root = create_empty_vnode();
+
+    node->mount_vfs = new_vfs;
+
+    new_vfs->vfs_ops = fstypes[fsnum].vfs_ops;
+    new_vfs->v_ops = fstypes[fsnum].v_ops;
+    new_vfs->v_root = new_root;
+    new_vfs->vfs_flags = flags;
+    new_vfs->vfs_dev = dev;
+
+    new_root->v_name[0] = '/';
+    new_root->v_vfs = new_vfs;
+    new_root->v_flags = V_DIR;
+    new_root->next = node->next;
+    new_root->prev = node->prev;
+
+    if (fstypes[fsnum].vfs_ops->vfs_mount(new_vfs))
+    {
+        PANIC("mount returned an error");
     }
-
-fs_node_t *fs_root = 0;
-fs_node_t *current_dir = 0;
-fs_type_t *fs_types[MAX_FS_TYPES] = {0};
-
-void register_fs(u32 typenum, fs_type_t *type)
-{
-    memcpy((void*)fs_types[typenum], (void*)type, sizeof(fs_type_t));
 }
 
-fs_node_t *vfs_path_lookup(char *name, fs_node_t *dir)
+struct vnode *create_empty_vnode()
 {
-    if (dir == 0)
-        dir = current_dir;
+    struct vnode *ret = (struct vnode*) kmalloc(sizeof(struct vnode));
+    memset(ret, 0, sizeof(struct vnode));
+    return ret;
 }
 
-u32 read_fs(fs_node_t *node, u32 offset, u32 size, u8 *buffer)
+void register_fstype(int fsnum, struct fs_type *new_fs)
 {
-    ASSERT_FS_SUPPORT(node);
+    ASSERT(fsnum < MAX_FSTYPES && !fstypes[fsnum].vfs_ops);
 
-    if (node->fs_type->read)
-        return node->fs_type->read(node, offset, size, buffer);
-
-    PANIC("node->read is null");
-    return 0;
-}
-
-u32 write_fs(fs_node_t *node, u32 offset, u32 size, u8 *buffer)
-{
-    ASSERT_FS_SUPPORT(node);
-
-    if (node->fs_type->write)
-        return node->fs_type->write(node, offset, size, buffer);
-
-    PANIC("node->write is null");
-    return 0;
-}
-
-void open_fs(fs_node_t *node, u8 read, u8 write)
-{
-    ASSERT_FS_SUPPORT(node);
-
-    if (node->fs_type->open)
-        return node->fs_type->open(node);
-
-    PANIC("node->open is null");
-}
-
-void close_fs(fs_node_t *node)
-{
-    ASSERT_FS_SUPPORT(node);
-
-    if (node->fs_type->close)
-        return node->fs_type->close(node);
-
-    PANIC("node->close is null");
-}
-
-struct dirent *readdir_fs(fs_node_t *node, u32 idx)
-{
-    ASSERT_FS_SUPPORT(node);
-    ASSERT_FS_ISDIR(node);
-
-    if (node->fs_type->readdir)
-        return node->fs_type->readdir(node, idx);
-
-    PANIC("node->readdir is null");
-    return 0;
-}
-
-fs_node_t *finddir_fs(fs_node_t *node, char *name)
-{
-    ASSERT_FS_SUPPORT(node);
-    ASSERT_FS_ISDIR(node);
-
-    if (node->fs_type->finddir)
-        return node->fs_type->finddir(node, name);
-
-    PANIC("node->finddir is null");
-    return 0;
-}
-
-fs_type_t *get_fstype(u32 num)
-{
-    if (num < MAX_FS_TYPES)
-        if (fs_types[num] != 0)
-            return fs_types[num];
-
-    return -1;
+    memcpy(&fstypes[fsnum], new_fs, sizeof(struct fs_type));
 }

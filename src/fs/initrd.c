@@ -15,58 +15,32 @@
  * along with TermOS.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <fs/initrd.h>
 #include <lib/stdio.h>
-#include <mm/mem.h>
 #include <lib/string.h>
+#include <fs/initrd.h>
+#include <fs/vfs.h>
+#include <mm/mem.h>
 
-static initrd_header_t *initrd_header;
-static initrd_node_t *initrd_nodes;
+struct vfs_ops vfs_ops = {&initrd_mount};
+struct v_ops v_ops = {0, 0};
 
-fs_type_t initrd_fs = {
-    (fs_read_t)initrd_read,
-    (fs_write_t)0,
-    (fs_open_t)initrd_open,
-    (fs_close_t)initrd_close,
-    (fs_readdir_t)initrd_readdir,
-    (fs_finddir_t)initrd_finddir
-};
-void init_initrd(u32 start_addr)
+void init_initrd()
 {
-    register_fs(0, &initrd_fs);
-
-    initrd_header = (initrd_header_t*) start_addr;
-    printf("%d\n%d\n", initrd_header->size, initrd_header->nodes);
-
-    initrd_nodes = (initrd_node_t*)(start_addr + sizeof(initrd_header_t));
+    struct fs_type initrd_fs_type = {"initrd", &vfs_ops, &v_ops};
+    register_fstype(FSTYPE_INITRD, &initrd_fs_type);
 }
 
-u32 initrd_read(fs_node_t *node, u32 offset, u32 size, u8 *buf)
+int initrd_mount(struct vfs *vfs)
 {
-    if (offset > node->size)
-        return 0;
-    if (offset + size > node->size)
-        size = node->size - offset;
+    struct initrd_mountpoint *mp = (struct initrd_mountpoint*) kmalloc(sizeof(struct initrd_mountpoint));
 
-    memcpy(buf, (u8*)(initrd_nodes[node->inode].data + offset), size);
-    return size;
+    u32 start_addr = vfs->vfs_dev;
+
+    mp->initrd_headers = (struct initrd_header*) start_addr;
+    mp->initrd_nodes = (struct initrd_node*) (start_addr + sizeof(struct initrd_header));
+    mp->data_start = (u32)mp->initrd_nodes + (sizeof(struct initrd_node) * mp->initrd_headers->nodes);
+
+    vfs->vfs_pdata = mp;
+
+    return 0;
 }
-
-struct dirent *initrd_readdir(fs_node_t *node, u32 idx)
-{
-}
-
-fs_node_t *initrd_finddir(fs_node_t *node, char *name)
-{
-}
-
-void initrd_open(fs_node_t *node)
-{
-    node = 0;
-}
-
-void initrd_close(fs_node_t *node)
-{
-    node = 0;
-}
-

@@ -19,61 +19,77 @@
 #include <lib/string.h>
 #include <mm/mem.h>
 #include <fs/vfs.h>
+#include <fs/vfs_cache.h>
 
-struct vnode *v_root;
+struct vnode *v_root = 0;
 struct fs_type fstypes[MAX_FSTYPES] = {{"",0,0},};
 
 void vfs_init()
 {
-    v_root = create_empty_vnode();
+    v_root = create_empty_vnode(NULL);
     v_root->v_name[0] = '/';
     v_root->v_flags = V_DIR;
+
+    vfs_cache_init();
 }
 
-void vfs_mount(struct vnode *node, int fsnum, u32 dev, u32 flags)
+struct vnode *vfs_lookup(struct vnode *parent, char *name)
+{
+    parent = GET_REAL_NODE(parent);
+
+    struct vfs_ops *vfs_ops = parent->v_vfs->vfs_ops;
+    return vfs_ops->vfs_lookup(parent, name);
+}
+
+int vfs_mount(struct vnode *node, int fsnum, u32 dev, u32 flags)
 {
     if (!V_ISDIR(node->v_flags))
-    {
         PANIC("Mountpoint is not a directory");
-    }
     if (node->mount_vfs)
-    {
         PANIC("Mountpoint is already mounted");
-    }
+
+    ASSERT(fstypes[fsnum].vfs_ops);
+    ASSERT(fstypes[fsnum].v_ops);
 
     struct vfs *new_vfs = (struct vfs*)kmalloc(sizeof(struct vfs));
-    struct vnode *new_root = create_empty_vnode();
+    struct vnode *new_root = create_empty_vnode(NULL);
 
-    node->mount_vfs = new_vfs;
-
-    new_vfs->vfs_ops = fstypes[fsnum].vfs_ops;
     new_vfs->v_ops = fstypes[fsnum].v_ops;
-    new_vfs->v_root = new_root;
+    new_vfs->vfs_ops = fstypes[fsnum].vfs_ops;
     new_vfs->vfs_flags = flags;
     new_vfs->vfs_dev = dev;
 
     new_root->v_name[0] = '/';
-    new_root->v_vfs = new_vfs;
     new_root->v_flags = V_DIR;
-    new_root->next = node->next;
-    new_root->prev = node->prev;
 
-    if (fstypes[fsnum].vfs_ops->vfs_mount(new_vfs))
-    {
-        PANIC("mount returned an error");
-    }
+    node->mount_vfs = new_vfs;
+    new_root->v_vfs = new_vfs;
+    new_vfs->v_root = new_root;
+
+    return fstypes[fsnum].vfs_ops->vfs_mount(new_vfs);
 }
 
-struct vnode *create_empty_vnode()
+struct vnode *create_empty_vnode(struct vfs *vfs)
 {
     struct vnode *ret = (struct vnode*) kmalloc(sizeof(struct vnode));
     memset(ret, 0, sizeof(struct vnode));
+
+    if (vfs)
+        ret->v_vfs = vfs;
+
     return ret;
 }
 
 void register_fstype(int fsnum, struct fs_type *new_fs)
 {
     ASSERT(fsnum < MAX_FSTYPES && !fstypes[fsnum].vfs_ops);
-
     memcpy(&fstypes[fsnum], new_fs, sizeof(struct fs_type));
+}
+
+inline void debug_vnode(struct vnode *node)
+{
+    node = GET_REAL_NODE(node);
+    printf("<vnode 0x%x: '%s', vfs:%x, m_vfs:%x, f:%x, i:%x>\n",
+        node, node->v_name, node->v_vfs,
+        node->mount_vfs, node->v_flags, node->v_inode);
 }

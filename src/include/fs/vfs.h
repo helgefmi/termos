@@ -20,21 +20,24 @@
 
 #include <kernel/common.h>
 
-/* defines for vnode->flags */
+/* vnode->flags */
 #define V_FILE    0x01
 #define V_DIR     0x02
-
+#define V_ISFILE(flags) ((flags) & V_FILE)
 #define V_ISDIR(flags) ((flags) & V_DIR)
 
-/* defines for vfs->flags */
+/* vfs->flags */
 #define VFS_READ      0x01
 
 #define MAX_FSTYPES 32
 #define FSTYPE_INITRD 0
 
+#define GET_REAL_NODE(node) ((node)->mount_vfs ? (node)->mount_vfs->v_root : node)
+
 struct vfs_ops;
 struct v_ops;
 struct vnode;
+struct dirent;
 
 struct vfs
 {
@@ -53,19 +56,16 @@ struct vnode
     struct vfs *mount_vfs;
     u8 v_flags;
     u32 v_inode;
-    struct vnode *next;
-    struct vnode *prev;
 };
 
 struct vfs_ops
 {
     int (*vfs_mount)(struct vfs*);
+    struct vnode *(*vfs_lookup)(struct vnode*, char*);
 };
 
 struct v_ops
 {
-    int (*v_read)();
-    int (*v_readdir)();
 };
 
 struct fs_type
@@ -75,14 +75,29 @@ struct fs_type
     struct v_ops *v_ops;
 };
 
+struct dirent
+{
+    char d_name[256];
+    u32 d_type;
+    u32 d_reclen;
+};
+
+typedef struct 
+{
+    struct dirent dirent;
+    struct vnode *d_vnode;
+    u32 d_pos;
+    u32 d_count;
+} DIR;
+
 void vfs_init();
 void register_fstype(int, struct fs_type*);
 
-struct vnode *create_empty_vnode();
-struct vnode *v_first_sibling(struct vnode*);
-struct vnode *v_parent(struct vnode*);
+int vfs_mount(struct vnode*, int, u32, u32);
+struct vnode *vfs_lookup(struct vnode*, char*);
 
-void vfs_mount(struct vnode*, int, u32, u32);
+struct vnode *create_empty_vnode();
+inline void debug_vnode(struct vnode*);
 
 extern struct vnode *v_root;
 

@@ -27,5 +27,9 @@ void *wmemcpy(void*, const void*, size_t);
 char *strcpy(char *, const char *);
 char *strncpy(char *, const char *, u32);
 int strcmp(const char*, const char*);
+int strlen(const char *);
+char *rindex(const char*, char);
+char *index(const char*, char);
+char *strtok(const char*, const char*);
 
 #endif

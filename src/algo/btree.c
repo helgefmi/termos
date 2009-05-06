@@ -47,7 +47,7 @@ void btree_insert(struct btree *root, btree_keytype key, btree_valtype val)
         if (!*match)
             *match = create_btree_node(key, val);
         else
-            printf("NONONONO\n");
+            PANIC("Something's terribly wrong!");
     }
 }
 
@@ -102,7 +102,7 @@ void btree_delete(struct btree *root, btree_keytype key)
                 else if (parent->right == *match)
                     parent->right = right;
                 else
-                    printf("NAWNAWNAW\n");
+                    PANIC("Something's terribly wrong!");
 
             }
             else
@@ -113,7 +113,7 @@ void btree_delete(struct btree *root, btree_keytype key)
         }
     }
     else
-        printf("NIETNIETNIET\n");
+        PANIC("Something's terribly wrong!");
 }
 
 static void btree_int_delete_recursivly(struct btree_node *node)
@@ -143,7 +143,7 @@ void btree_delete_recursivly(struct btree *root, btree_keytype key)
         else if (parent->right == *match)
             parent->right = 0;
         else
-            printf("AJSDFIASJDF\n");
+            PANIC("Something's terribly wrong!");
     }
     else
     {
@@ -166,4 +166,3 @@ struct btree *btree_create(btree_cmptype cmp)
 
     return btree;
 }
-

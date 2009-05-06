@@ -15,41 +15,11 @@
  * along with TermOS.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _INITRD_H
-#define _INITRD_H
+#ifndef _VFS_CACHE_H
+#define _VFS_CACHE_H
 
-#include <kernel/common.h>
-#include <fs/vfs.h>
+void vfs_cache_init();
 
-#define TYPE_FILE 0x1
-#define TYPE_DIR  0x2
-
-#define NAME_LEN 12
-
-struct initrd_header
-{
-    u32 size;
-    u32 nodes;
-};
-
-struct initrd_node
-{
-     u32 inode;
-     u8 type;
-     u32 size;
-     u32 data;
-     char name[NAME_LEN];
-} __attribute__((__packed__));
-
-struct initrd_mountpoint
-{
-    struct initrd_header *initrd_headers;
-    struct initrd_node *initrd_nodes;
-    u32 data_start;
-};
-
-void init_initrd();
-int initrd_mount(struct vfs*);
-struct vnode *initrd_lookup(struct vnode*, char*);
+struct vnode *vfs_vname(char*);
 
 #endif

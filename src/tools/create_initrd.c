@@ -9,8 +9,8 @@
 /* globals {{{ */
 struct stat stat_buf;
 FILE* output;
-int total_nodes = 0;
-int offset;
+u64 total_nodes = 0;
+u64 offset;
 /* }}} */
 
 void print_syntax() // {{{
@@ -25,7 +25,7 @@ initrd_node_t *read_header_file(char* path)
     node->type = TYPE_FILE;
     node->inode = ++total_nodes;
 
-    strncpy(node->name, path, 256);
+    strncpy(node->name, path, NAME_LEN);
 
     FILE* fp = fopen(node->name, "r");
     fseek(fp, 0, SEEK_END);
@@ -42,9 +42,9 @@ initrd_node_t *read_header_dir(char* path, initrd_node_t *parent)
     initrd_node_t *node = (initrd_node_t*) calloc(sizeof(initrd_node_t), 1);
     node->type = TYPE_DIR;
     node->size = 0;
-    node->data = (int)calloc(sizeof(int) * 1024, 1);
+    node->data = (u64)calloc(sizeof(u32) * 1024, 1);
 
-    strncpy(node->name, path, 256);
+    strncpy(node->name, path, NAME_LEN);
     node->inode = ++total_nodes;
 
 
@@ -71,7 +71,7 @@ initrd_node_t *read_header_dir(char* path, initrd_node_t *parent)
         {
             child = read_header_file(dirent->d_name);
         }
-        ((int *) node->data)[node->size++] = (int)child;
+        ((u64 *) node->data)[node->size++] = (u64)child;
     }
 
     if (parent)
@@ -80,22 +80,32 @@ initrd_node_t *read_header_dir(char* path, initrd_node_t *parent)
 }
 /* }}} */
 /* write_header_* {{{ */
+void write_node(initrd_node_t *node)
+{
+    fwrite(&node->inode, sizeof(u32), 1, output);
+    fwrite(&node->type, sizeof(u8), 1, output);
+    fwrite(&node->size, sizeof(u32), 1, output);
+    u32 data = (u32)node->data;
+    fwrite(&data, sizeof(u32), 1, output);
+    fwrite(&node->name, sizeof(u8) * NAME_LEN, 1, output);
+}
+
 void write_header_file(initrd_node_t *node)
 {
-    node->data = offset;
+    node->data = (u64) offset;
     offset += node->size;
 
-    fwrite(node, sizeof(initrd_node_t), 1, output);
+    write_node(node);
 }
 
 void write_header_dir(initrd_node_t *node)
 {
-    int tmp = node->data;
-    node->data = offset;
-    fwrite(node, sizeof(initrd_node_t), 1, output);
+    u64 tmp = node->data;
+    node->data = (u64) offset;
+    write_node(node);
     node->data = tmp;
 
-    offset += node->size * sizeof(long int);
+    offset += node->size * sizeof(u32);
 
     int i;
     for (i = 0; i < node->size; ++i)
@@ -116,7 +126,7 @@ void write_header_dir(initrd_node_t *node)
 /* write_data_* {{{ */
 void write_data_file(initrd_node_t *node)
 {
-    node->data = offset;
+    node->data = (u64)offset;
     offset += node->size;
 
     FILE *input;
@@ -148,7 +158,7 @@ void write_data_dir(initrd_node_t *node)
     for (i = 0; i < node->size; ++i)
     {
         initrd_node_t *child = ((initrd_node_t **)node->data)[i];
-        fwrite(&child->inode, sizeof(int), 1, output);
+        fwrite(&child->inode, sizeof(u32), 1, output);
     }
 
     for (i = 0; i < node->size; ++i)
@@ -212,13 +222,13 @@ int main(int argc, char **argv) // {{{
 
     fseek(output, 4, 0);
 
-    fwrite(&total_nodes, sizeof(int), 1, output);
+    fwrite(&total_nodes, sizeof(u32), 1, output);
     write_header_dir(root);
     write_data_dir(root);
 
-    int totalsize = ftell(output);
+    u32 totalsize = ftell(output);
     rewind(output);
-    fwrite(&totalsize, sizeof(int), 1, output);
+    fwrite(&totalsize, sizeof(u32), 1, output);
     fclose(output);
 
     return 0;

@@ -16,7 +16,75 @@
 */
 
 #include <lib/string.h>
-#include <kernel/common.h>
+#include <mm/mem.h>
+
+const char *strtokStr = 0;
+char *strtokRet = 0;
+
+char *strtok(const char *str, const char *delim)
+{
+    const char *delim2 = delim;
+
+    if (str == NULL)
+        str = strtokStr;
+    else
+        strtokStr = str;
+
+    if (strtokRet != NULL)
+        kfree(strtokRet);
+
+    int matched = 0;
+    while (*str)
+    {
+        while (*delim2 && *delim2 != *str)
+            ++delim2;
+
+        if (!matched && *delim2)
+            ++str;
+        else if (matched && !*delim2)
+            ++str;
+        else if (!matched)
+            matched = str - strtokStr;
+        else
+            break;
+
+        delim2 = delim;
+    }
+
+    if (!matched)
+        return NULL;
+
+    int len = (str - strtokStr - matched);
+    if (!len)
+        return NULL;
+
+    strtokRet = (char*) kmalloc(len + 1);
+    strncpy(strtokRet, strtokStr + matched, len + 1);
+    strtokRet[len] = '\0';
+
+    strtokStr = str;
+    return strtokRet;
+}
+
+char *index(const char *src, char c)
+{
+    while (*src && *src != c)
+        ++src;
+
+    return *src ? (char*) src : NULL;
+}
+char *rindex(const char *src, char c)
+{
+    char *last = NULL;
+    while (*src)
+    {
+        if (*src == c)
+            last = (char*) src;
+        ++src;
+    }
+
+    return last;
+}
 
 char *strncpy(char *dst, const char *src, u32 size)
 {
@@ -51,7 +119,7 @@ char *strcpy(char *dst, const char *src)
 
 int strcmp(const char *s1, const char *s2)
 {
-    for (;*s1 && *s2; ++s1, ++s2)
+    for (;*s1 || *s2; ++s1, ++s2)
     {
         if (*s1 < *s2)
             return -1;
@@ -100,4 +168,12 @@ void *wmemcpy(void *dst, const void *src, size_t n)
         *dst_u16++ = *src_u16++;
 
     return dst;
+}
+
+int strlen(const char *src)
+{
+    const char *start = src;
+    while (*src)
+        ++src;
+    return src - start;
 }

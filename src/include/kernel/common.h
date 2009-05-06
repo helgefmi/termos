@@ -18,6 +18,7 @@
 #ifndef _COMMON_H
 #define _COMMON_H
 
+#define NULL (0)
 #define INT_MAX (4294967295ul)
 #define PANIC(msg) \
     { \

@@ -15,23 +15,23 @@
  * along with TermOS.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <lib/string.h>
 #include <kernel/common.h>
 #include <kernel/tty.h>
-#include <mm/mem.h>
 #include <kernel/gdt.h>
 #include <kernel/idt.h>
 #include <kernel/irq.h>
 #include <kernel/timer.h>
+#include <mm/mem.h>
 #include <mm/paging.h>
 #include <mm/heap.h>
 #include <fs/vfs.h>
 #include <fs/initrd.h>
+#include <fs/vfs_cache.h>
+#include <lib/string.h>
 
-int debug;
 extern page_directory_t *kernel_directory;
-
 multiboot_header_t *multiboot_header;
+
 int kmain(multiboot_header_t *_multiboot_header)
 {
     /* Storing this info so other components can use it */
@@ -60,8 +60,18 @@ int kmain(multiboot_header_t *_multiboot_header)
     init_initrd();
 
     vfs_mount(v_root, FSTYPE_INITRD, initrd_start, VFS_READ);
+    
+    /* TEST */
+    struct vnode *node;
 
-    debug_heap();
+    node = vfs_vname("/home/");
+    debug_vnode(node);
+    vfs_mount(node, FSTYPE_INITRD, initrd_start, VFS_READ);
+
+    node = vfs_vname("/home/home/amazing");
+    debug_vnode(node);
+
+//    debug_heap();
     printf("bai\n");
 
     return 0x12345678;

@@ -73,6 +73,33 @@ struct vnode *vfs_vname(char* path)
     return parent;
 }
 
+void vget(struct vnode *node)
+{
+    ++node->v_count;
+    struct vnode *m_node = GET_REAL_NODE(node);
+    if (m_node != node)
+        ++m_node->v_count;
+}
+
+void vput(struct vnode *node)
+{
+    --node->v_count;
+
+    struct vnode *m_node = GET_REAL_NODE(node);
+    if (m_node != node)
+        --m_node->v_count;
+
+    if (!node->v_count)
+    {
+        if (m_node != node)
+        {
+            kfree(m_node);
+            kfree(node->mount_vfs);
+        }
+        kfree(node);
+    }
+}
+
 int v_cache_cmp(btree_keytype a, btree_keytype b)
 {
     struct vnode *v_a = (struct vnode *)a,

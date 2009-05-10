@@ -42,7 +42,6 @@ typedef unsigned char           u8;
 typedef signed char             s8;
 
 typedef u32 size_t;
-typedef u32 FILE;
 
 typedef struct registers
 {

@@ -73,6 +73,7 @@ char *index(const char *src, char c)
 
     return *src ? (char*) src : NULL;
 }
+
 char *rindex(const char *src, char c)
 {
     char *last = NULL;
@@ -142,8 +143,11 @@ void *memset(void *src, int c, size_t num)
 void *wmemset(void *src, int c, size_t num)
 {
     u16 *src_u16 = src;
-    while (num--)
+    while (num)
+    {
         *src_u16++ = c;
+        --num;
+    }
 
     return src;
 }
@@ -153,8 +157,11 @@ void *memcpy(void *dst, const void *src, size_t n)
     u8 *dst_u8 = dst;
     const u8 *src_u8 = src;
 
-    while (n--)
+    while (n)
+    {
         *dst_u8++ = *src_u8++;
+        --n;
+    }
 
     return dst;
 }
@@ -164,8 +171,11 @@ void *wmemcpy(void *dst, const void *src, size_t n)
     u16 *dst_u16 = dst;
     const u16 *src_u16 = src;
 
-    while (n--)
+    while (n)
+    {
         *dst_u16++ = *src_u16++;
+        --n;
+    }
 
     return dst;
 }
@@ -175,5 +185,6 @@ int strlen(const char *src)
     const char *start = src;
     while (*src)
         ++src;
+
     return src - start;
 }

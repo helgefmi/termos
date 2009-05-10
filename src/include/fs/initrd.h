@@ -51,5 +51,7 @@ struct initrd_mountpoint
 void init_initrd();
 int initrd_mount(struct vfs*);
 struct vnode *initrd_lookup(struct vnode*, char*);
+size_t initrd_read(FILE*, void*, size_t);
+struct vnode *initrd_readdir(struct vnode*, u32);
 
 #endif

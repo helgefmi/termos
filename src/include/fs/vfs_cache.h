@@ -21,5 +21,9 @@
 void vfs_cache_init();
 
 struct vnode *vfs_vname(char*);
+void vget(struct vnode*);
+void vput(struct vnode*);
+
+extern struct btree *v_cache;
 
 #endif

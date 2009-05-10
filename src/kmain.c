@@ -29,8 +29,43 @@
 #include <fs/vfs_cache.h>
 #include <lib/string.h>
 
-extern page_directory_t *kernel_directory;
 multiboot_header_t *multiboot_header;
+
+void test(struct vnode *node, u32 pad)
+{
+    u32 i = 0;
+    if (pad)
+        printf("|");
+    while (i++ < pad)
+        printf("-");
+    if (pad)
+        printf(" ");
+
+    printf("%s\n", node->v_name);
+
+    if (V_ISDIR(node->v_flags))
+    {
+        DIR *dh = vfs_opendir(node);
+        while ((node = vfs_readdir(dh)) != NULL)
+            test(node, pad + 2);
+        vfs_closedir(dh);
+    }
+    else if (V_ISFILE(node->v_flags))
+    {
+        i = 0;
+        while (i++ < pad + 2)
+            printf("-");
+        printf("-> ");
+
+        FILE* fh = vfs_open(node, VFS_READ);
+        char *buf = (char *) kmalloc(1025);
+
+        size_t ret = vfs_read(fh, buf, 1024);
+        buf[ret] = '\0';
+        printf("\"%s\"\n", buf);
+        vfs_close(fh);
+    }
+}
 
 int kmain(multiboot_header_t *_multiboot_header)
 {
@@ -59,17 +94,12 @@ int kmain(multiboot_header_t *_multiboot_header)
     vfs_init();
     init_initrd();
 
+    /* Mount '/' to the initrd */
     vfs_mount(v_root, FSTYPE_INITRD, initrd_start, VFS_READ);
     
-    /* TEST */
-    struct vnode *node;
-
-    node = vfs_vname("/home/");
-    debug_vnode(node);
-    vfs_mount(node, FSTYPE_INITRD, initrd_start, VFS_READ);
-
-    node = vfs_vname("/home/home/amazing");
-    debug_vnode(node);
+    {
+        test(v_root, 0);
+    }
 
 //    debug_heap();
     printf("bai\n");

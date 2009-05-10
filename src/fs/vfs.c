@@ -20,9 +20,10 @@
 #include <mm/mem.h>
 #include <fs/vfs.h>
 #include <fs/vfs_cache.h>
+#include <algo/btree.h>
 
 struct vnode *v_root = 0;
-struct fs_type fstypes[MAX_FSTYPES] = {{"",0,0},};
+struct fs_type fstypes[MAX_FSTYPES] = {{"",0},};
 
 void vfs_init()
 {
@@ -31,6 +32,66 @@ void vfs_init()
     v_root->v_flags = V_DIR;
 
     vfs_cache_init();
+    btree_insert(v_cache, "/", v_root);
+}
+
+FILE *vfs_open(struct vnode *node, u8 flags)
+{
+    vget(node);
+
+    FILE *ret = (FILE*) kmalloc(sizeof(FILE));
+    ret->v_node = node;
+    ret->f_offset = 0;
+    ret->f_flags = flags;
+
+    return ret;
+}
+
+DIR *vfs_opendir(struct vnode *node)
+{
+    vget(node);
+
+    DIR *ret =(DIR*) kmalloc(sizeof(DIR));
+    ret->v_node = node;
+    ret->d_offset = 0;
+
+    return ret;
+}
+
+size_t vfs_read(FILE *file, void *buf, size_t len)
+{
+    struct vnode *node = GET_REAL_NODE(file->v_node);
+    struct vfs_ops *vfs_ops = node->v_vfs->vfs_ops;
+
+    return vfs_ops->v_read(file, buf, len);
+}
+
+struct vnode *vfs_readdir(DIR *dir)
+{
+    struct vnode *node = GET_REAL_NODE(dir->v_node);
+    struct vfs_ops *vfs_ops = node->v_vfs->vfs_ops;
+
+    return vfs_ops->v_readdir(node, dir->d_offset++);
+}
+
+void vfs_close(FILE *file)
+{
+    vput(file->v_node);
+    kfree(file);
+}
+
+void vfs_closedir(DIR *dir)
+{
+    vput(dir->v_node);
+    kfree(dir);
+}
+
+size_t vfs_write(FILE *file, const void *buf, size_t len)
+{
+    struct vnode *node = GET_REAL_NODE(file->v_node);
+    struct vfs_ops *vfs_ops = node->v_vfs->vfs_ops;
+
+    return vfs_ops->v_write(file, buf, len);
 }
 
 struct vnode *vfs_lookup(struct vnode *parent, char *name)
@@ -49,12 +110,10 @@ int vfs_mount(struct vnode *node, int fsnum, u32 dev, u32 flags)
         PANIC("Mountpoint is already mounted");
 
     ASSERT(fstypes[fsnum].vfs_ops);
-    ASSERT(fstypes[fsnum].v_ops);
 
-    struct vfs *new_vfs = (struct vfs*)kmalloc(sizeof(struct vfs));
+    struct vfs *new_vfs = (struct vfs*) kmalloc(sizeof(struct vfs));
     struct vnode *new_root = create_empty_vnode(NULL);
 
-    new_vfs->v_ops = fstypes[fsnum].v_ops;
     new_vfs->vfs_ops = fstypes[fsnum].vfs_ops;
     new_vfs->vfs_flags = flags;
     new_vfs->vfs_dev = dev;
@@ -66,7 +125,12 @@ int vfs_mount(struct vnode *node, int fsnum, u32 dev, u32 flags)
     new_root->v_vfs = new_vfs;
     new_vfs->v_root = new_root;
 
-    return fstypes[fsnum].vfs_ops->vfs_mount(new_vfs);
+    int ret = fstypes[fsnum].vfs_ops->vfs_mount(new_vfs);
+
+    if (!ret)
+        vget(node); 
+
+    return ret;
 }
 
 struct vnode *create_empty_vnode(struct vfs *vfs)
@@ -88,7 +152,6 @@ void register_fstype(int fsnum, struct fs_type *new_fs)
 
 inline void debug_vnode(struct vnode *node)
 {
-    node = GET_REAL_NODE(node);
     printf("<vnode 0x%x: '%s', vfs:%x, m_vfs:%x, f:%x, i:%x>\n",
         node, node->v_name, node->v_vfs,
         node->mount_vfs, node->v_flags, node->v_inode);

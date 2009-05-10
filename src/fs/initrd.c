@@ -21,13 +21,59 @@
 #include <fs/vfs.h>
 #include <mm/mem.h>
 
-struct vfs_ops vfs_ops = {&initrd_mount, &initrd_lookup};
-struct v_ops v_ops = {};
+struct vfs_ops vfs_ops = {&initrd_mount, &initrd_lookup, &initrd_read, 0, &initrd_readdir};
 
 void init_initrd()
 {
-    struct fs_type initrd_fs_type = {"initrd", &vfs_ops, &v_ops};
+    struct fs_type initrd_fs_type = {"initrd", &vfs_ops};
     register_fstype(FSTYPE_INITRD, &initrd_fs_type);
+}
+
+struct vnode *initrd_readdir(struct vnode *node, u32 offset)
+{
+    struct initrd_mountpoint *mp = (struct initrd_mountpoint*) node->v_vfs->vfs_pdata;
+    struct initrd_node *initrd_node = &mp->initrd_nodes[node->v_inode];
+
+    ASSERT(initrd_node->type & TYPE_DIR);
+
+    if (offset >= initrd_node->size)
+        return NULL;
+
+    u32 *data = (u32*) (mp->data_start + initrd_node->data);
+
+    struct initrd_node *subject = &mp->initrd_nodes[data[ offset ] - 1];
+
+    struct vnode *ret = create_empty_vnode(node->v_vfs);
+    strcpy(ret->v_name, subject->name);
+    ret->v_inode = subject->inode - 1;
+    ret->v_flags = subject->type;
+    ret->v_size = subject->size;
+    return ret;
+}
+
+size_t initrd_read(FILE *file, void *buf, size_t len)
+{
+    struct vnode *node = file->v_node;
+    struct initrd_mountpoint *mp = (struct initrd_mountpoint*) node->v_vfs->vfs_pdata;
+    struct initrd_node *initrd_node = &mp->initrd_nodes[node->v_inode];
+
+    if ((initrd_node->type & TYPE_FILE) == 0)
+        return 0;
+
+    if (file->f_offset + len > node->v_size)
+        len = node->v_size - file->f_offset;
+
+    size_t ret = len;
+    const char *src = (const char *)  mp->data_start + initrd_node->data;
+    char *dst = (char *) buf;
+    while (len)
+    {
+        *dst++ = *src++;
+        --len;
+        file->f_offset += 1;
+    }
+
+    return ret;
 }
 
 struct vnode *initrd_lookup(struct vnode *parent, char *name)
@@ -51,6 +97,7 @@ struct vnode *initrd_lookup(struct vnode *parent, char *name)
             strcpy(ret->v_name, subject->name);
             ret->v_inode = subject->inode - 1;
             ret->v_flags = subject->type;
+            ret->v_size = subject->size;
             return ret;
         }
     }

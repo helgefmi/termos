@@ -21,8 +21,8 @@
 #include <kernel/common.h>
 
 extern int printf(const char*, ...);
-extern int fprintf(FILE *, const char*, ...);
-extern int sprintf(char *, const char*, ...);
-extern int snprintf(char *, size_t, const char*, ...);
+//extern int fprintf(FILE*, const char*, ...);
+extern int sprintf(char*, const char*, ...);
+extern int snprintf(char*, size_t, const char*, ...);
 
 #endif

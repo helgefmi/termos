@@ -4,6 +4,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/unistd.h>
 #include "create_initrd.h"
 
 /* globals {{{ */
@@ -107,7 +108,7 @@ void write_header_dir(initrd_node_t *node)
 
     offset += node->size * sizeof(u32);
 
-    int i;
+    u32 i;
     for (i = 0; i < node->size; ++i)
     {
         initrd_node_t *child = ((initrd_node_t **)node->data)[i];
@@ -154,7 +155,7 @@ void write_data_file(initrd_node_t *node)
 void write_data_dir(initrd_node_t *node)
 {
     chdir(node->name);
-    int i;
+    u32 i;
     for (i = 0; i < node->size; ++i)
     {
         initrd_node_t *child = ((initrd_node_t **)node->data)[i];
@@ -188,8 +189,6 @@ int main(int argc, char **argv) // {{{
 
     char *src = argv[1],
          *dst = argv[2];
-
-    DIR *dir;
 
     initrd_node_t *root;
 

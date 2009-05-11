@@ -15,44 +15,19 @@
  * along with TermOS.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _INITRD_H
-#define _INITRD_H
-
-#include <kernel/common.h>
+#include <lib/stdio.h>
+#include <lib/string.h>
 #include <fs/vfs.h>
+#include <mm/mem.h>
 
-#define TYPE_FILE 0x1
-#define TYPE_DIR  0x2
-
-#define NAME_LEN 12
-
-struct initrd_header
-{
-    u32 size;
-    u32 nodes;
+struct vfs_ops rootfs_vfs_ops = {
+    0, 0,
+    0, 0,
+    0
 };
 
-struct initrd_node
+void init_rootfs()
 {
-     u32 inode;
-     u8 type;
-     u32 size;
-     u32 data;
-     char name[NAME_LEN];
-} __attribute__((__packed__));
-
-struct initrd_mountpoint
-{
-    struct initrd_header *initrd_headers;
-    struct initrd_node *initrd_nodes;
-    u32 data_start;
-};
-
-void init_initrd();
-int initrd_mount(struct vfs*);
-int initrd_unmount(struct vfs*);
-struct vnode *initrd_lookup(struct vnode*, char*);
-size_t initrd_read(FILE*, void*, size_t);
-struct vnode *initrd_readdir(struct vnode*, u32);
-
-#endif
+    struct fs_type rootfs_fs_type = {"rootfs", &rootfs_vfs_ops};
+    register_fstype(FSTYPE_ROOTFS, &rootfs_fs_type);
+}

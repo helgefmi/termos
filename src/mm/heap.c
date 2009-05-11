@@ -220,6 +220,8 @@ void free(void *addr)
     /* .. panic of not :) */
     ASSERT(current);
 
+    memset((void*) current->addr, 0, current->size);
+
     current->allocated = 0;
     kheap->allocated -= current->size;
 

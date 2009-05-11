@@ -52,7 +52,7 @@ struct vnode *vfs_vname(char* path)
         strcpy(&key[keyLen - partLen], part);
         key[keyLen + 1] = '\0';
 
-        struct vnode *node = (struct vnode*) btree_lookup(v_cache, key);
+        struct vnode *node = 0; //(struct vnode*) btree_lookup(v_cache, key);
         if (node == NULL)
         {
             node = vfs_lookup(parent, part);
@@ -62,7 +62,9 @@ struct vnode *vfs_vname(char* path)
                 return NULL;
             }
 
-            btree_insert(v_cache, key, node);
+            /* Remove when caching works */
+            kfree(key);
+            //btree_insert(v_cache, key, node);
         }
 
         parent = node;
@@ -75,27 +77,20 @@ struct vnode *vfs_vname(char* path)
 
 void vget(struct vnode *node)
 {
+    //printf("vget: %s->%d\n", node->v_name, node->v_count);
     ++node->v_count;
-    struct vnode *m_node = GET_REAL_NODE(node);
-    if (m_node != node)
-        ++m_node->v_count;
 }
 
 void vput(struct vnode *node)
 {
-    --node->v_count;
+    //printf("vput: %s->%d\n", node->v_name, node->v_count);
 
-    struct vnode *m_node = GET_REAL_NODE(node);
-    if (m_node != node)
-        --m_node->v_count;
+    ASSERT(node->v_count > 0);
+    --node->v_count;
 
     if (!node->v_count)
     {
-        if (m_node != node)
-        {
-            kfree(m_node);
-            kfree(node->mount_vfs);
-        }
+        ASSERT(node->v_vfs);
         kfree(node);
     }
 }

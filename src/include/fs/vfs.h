@@ -19,6 +19,7 @@
 #define _VFS_H
 
 #include <kernel/common.h>
+#include <algo/btree.h>
 
 /* vnode->flags */
 #define V_FILE    0x01
@@ -28,20 +29,21 @@
 
 /* vfs->flags */
 #define VFS_READ      0x01
+#define VFS_WRITE     0x02
 
 #define MAX_FSTYPES 32
-#define FSTYPE_INITRD 0
+#define FSTYPE_ROOTFS 0
+#define FSTYPE_INITRD 1
+#define FSTYPE_DEVFS 2
 
-#define GET_REAL_NODE(node) ((node)->mount_vfs ? (node)->mount_vfs->v_root : node)
-
+struct vfs;
 struct vfs_ops;
 struct vnode;
-struct dirent;
-struct FILE;
 
 typedef struct 
 {
     struct vnode *v_node;
+    struct vnode *v_last_node;
     u32 d_offset;
 } DIR;
 
@@ -59,13 +61,13 @@ struct vfs
     u32 vfs_flags;
     u32 vfs_dev;
     void *vfs_pdata;
+    struct btree *vfs_mounts;
 };
 
 struct vnode
 {
     char v_name[256];
     struct vfs *v_vfs;
-    struct vfs *mount_vfs;
     u8 v_flags;
     u32 v_inode;
     u32 v_count;
@@ -76,7 +78,7 @@ struct vfs_ops
 {
     /* VFS */
     int (*vfs_mount)(struct vfs*);
-    struct vnode *(*vfs_lookup)(struct vnode*, char*);
+    int (*vfs_unmount)(struct vfs*);
 
     /* VNODE */
     size_t (*v_read)(FILE*, void*, size_t);
@@ -94,6 +96,7 @@ void vfs_init();
 void register_fstype(int, struct fs_type*);
 
 int vfs_mount(struct vnode*, int, u32, u32);
+int vfs_unmount(struct vnode*);
 struct vnode *vfs_lookup(struct vnode*, char*);
 size_t vfs_read(FILE*, void*, size_t);
 size_t vfs_write(FILE*, const void*, size_t);
@@ -103,9 +106,13 @@ DIR *vfs_opendir(struct vnode*);
 struct vnode *vfs_readdir(DIR*);
 void vfs_closedir(DIR*);
 
-struct vnode *create_empty_vnode();
+struct vnode *create_empty_vnode(struct vfs*);
+struct vfs *create_empty_vfs(int fsnum);
 inline void debug_vnode(struct vnode*);
 
+inline struct vnode *get_real_node(struct vnode*);
+
 extern struct vnode *v_root;
+int btree_cmp_u32(btree_keytype, btree_keytype);
 
 #endif

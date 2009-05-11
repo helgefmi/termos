@@ -21,6 +21,6 @@ typedef struct initrd_node
      u8 type;
      u32 size;
      u64 data;
-     u8 name[NAME_LEN];
+     char name[NAME_LEN];
 } __attribute__((__packed__)) initrd_node_t;
 #endif

@@ -21,11 +21,15 @@
 #include <fs/vfs.h>
 #include <mm/mem.h>
 
-struct vfs_ops vfs_ops = {&initrd_mount, &initrd_lookup, &initrd_read, 0, &initrd_readdir};
+struct vfs_ops initrd_vfs_ops = {
+    &initrd_mount, &initrd_unmount,
+    &initrd_read, 0,
+    &initrd_readdir
+};
 
 void init_initrd()
 {
-    struct fs_type initrd_fs_type = {"initrd", &vfs_ops};
+    struct fs_type initrd_fs_type = {"initrd", &initrd_vfs_ops};
     register_fstype(FSTYPE_INITRD, &initrd_fs_type);
 }
 
@@ -76,33 +80,12 @@ size_t initrd_read(FILE *file, void *buf, size_t len)
     return ret;
 }
 
-struct vnode *initrd_lookup(struct vnode *parent, char *name)
+int initrd_unmount(struct vfs *vfs)
 {
-    struct initrd_mountpoint *mp = (struct initrd_mountpoint*) parent->v_vfs->vfs_pdata;
-    struct initrd_node *parent_node = &mp->initrd_nodes[parent->v_inode];
+    struct initrd_mountpoint *mp = (struct initrd_mountpoint*) vfs->vfs_pdata;
+    kfree(mp);
 
-    u32 i;
-
-    ASSERT(parent_node->type & TYPE_DIR);
-
-    u32 *data = (u32*) (mp->data_start + parent_node->data);
-
-    for (i = 0; i < parent_node->size; ++i)
-    {
-        struct initrd_node *subject = &mp->initrd_nodes[data[i] - 1];
-
-        if (strcmp(subject->name, name) == 0)
-        {
-            struct vnode *ret = create_empty_vnode(parent->v_vfs);
-            strcpy(ret->v_name, subject->name);
-            ret->v_inode = subject->inode - 1;
-            ret->v_flags = subject->type;
-            ret->v_size = subject->size;
-            return ret;
-        }
-    }
-
-    return NULL;
+    return 0;
 }
 
 int initrd_mount(struct vfs *vfs)

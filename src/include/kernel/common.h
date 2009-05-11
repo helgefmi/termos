@@ -18,6 +18,10 @@
 #ifndef _COMMON_H
 #define _COMMON_H
 
+#define sti() asm volatile ("sti")
+#define cli() asm volatile ("cli")
+#define nop() asm volatile ("nop")
+
 #define NULL (0)
 #define INT_MAX (4294967295ul)
 #define PANIC(msg) \

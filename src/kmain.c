@@ -27,9 +27,12 @@
 #include <fs/vfs.h>
 #include <fs/initrd.h>
 #include <fs/vfs_cache.h>
+#include <fs/devfs/devfs.h>
 #include <lib/string.h>
 
 multiboot_header_t *multiboot_header;
+
+extern heap_t *kheap;
 
 void test(struct vnode *node, u32 pad)
 {
@@ -58,7 +61,7 @@ void test(struct vnode *node, u32 pad)
         printf("-> ");
 
         FILE* fh = vfs_open(node, VFS_READ);
-        char *buf = (char *) kmalloc(1025);
+        char buf[1025];
 
         size_t ret = vfs_read(fh, buf, 1024);
         buf[ret] = '\0';
@@ -83,26 +86,37 @@ int kmain(multiboot_header_t *_multiboot_header)
 
     init_gdt();
     init_idt();
+
     init_paging();
     init_heap();
 
     init_pic();
     init_timer(100);
 
-    asm volatile ("sti");
+    sti();
 
     vfs_init();
     init_initrd();
+    init_devfs();
 
-    /* Mount '/' to the initrd */
     vfs_mount(v_root, FSTYPE_INITRD, initrd_start, VFS_READ);
-    
-    {
-        test(v_root, 0);
-    }
+    struct vnode *test_mnt = vfs_lookup(v_root, "test_mnt");
+    vfs_mount(test_mnt, FSTYPE_INITRD, initrd_start, VFS_READ);
+    vfs_unmount(test_mnt);
+    vput(test_mnt);
 
-//    debug_heap();
+    struct vnode *dev_node = vfs_lookup(v_root, "dev");
+    vfs_mount(dev_node, FSTYPE_DEVFS, 0, VFS_READ | VFS_WRITE);
+    vput(dev_node);
+
+    debug_vnode(v_root);
+
+    printf("%d\n", kheap->allocated);
+    test(v_root, 0);
+    printf("%d\n", kheap->allocated);
+
     printf("bai\n");
 
+    cli();
     return 0x12345678;
 }

@@ -16,6 +16,7 @@
 */
 
 #include <kernel/isr.h>
+#include <kernel/common.h>
 #include <lib/stdio.h>
 #include <kernel/irq.h>
 
@@ -77,6 +78,9 @@ void isr_handler(registers_t *regs)
         {
             printf("Unknown exception: %d\n", regs->int_no);
         }
+
+        dump_regs(regs);
+        PANIC("Unhandeled exception");
     }
 }
 

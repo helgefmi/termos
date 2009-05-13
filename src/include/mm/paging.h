@@ -48,5 +48,6 @@ void switch_page_directory(page_directory_t*);
 page_t *get_page(u32, int, page_directory_t*);
 void page_fault(registers_t*);
 void alloc_frame(page_t*, int, int);
+void free_frame(page_t*);
 
 #endif

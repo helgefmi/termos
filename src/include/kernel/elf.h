@@ -15,31 +15,56 @@
  * along with TermOS.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _DEVFS_H
-#define _DEVFS_H
+#ifndef _ELF_H
+#define _ELF_H
 
 #include <kernel/common.h>
-#include <fs/vfs.h>
 
-struct devfs_node
+#define EI_CLASS 4
+#define ELFCLASS32 1
+
+#define PF_X 0x1
+#define PF_W 0x2
+#define PW_R 0x4
+
+#define PT_NULL 0
+#define PT_LOAD 1
+#define PT_DYNAMIC 2
+#define PT_INTERP 3
+#define PT_NOTE 4
+#define PT_SHLIB 5
+#define PT_PHDR 6
+#define PT_LOPROC 0x70000000
+#define PT_HIPROC 0x7fffffff
+
+struct elf_hdr
 {
-    char name[256];
-    u32 inode;
-    u8 type;
+    u8  ident[16];
+    u16 type;
+    u16 machine;
+    u32 version;
+    u32 entry;
+    u32 phoff;
+    u32 sphoff;
+    u32 flags;
+    u16 ehsize;
+    u16 phentsize;
+    u16 phnum;
+    u16 shentsize;
+    u16 shnum;
+    u16 shstrndx;
 };
 
-struct devfs_mountpoint
+struct prg_hdr
 {
-    struct devfs_node *devfs_nodes;
-    u32 devfs_num_nodes;
+    u32 type;
+    u32 offset;
+    u32 vaddr;
+    u32 paddr;
+    u32 fileSize;
+    u32 memSize;
+    u32 flags;
+    u32 alignment;
 };
-
-void init_devfs();
-
-int devfs_mount(struct vfs*);
-int devfs_unmount(struct vfs*);
-size_t devfs_read(FILE*, void*, size_t);
-size_t devfs_write(FILE*, const void*, size_t);
-struct vnode *devfs_readdir(struct vnode*, u32);
 
 #endif

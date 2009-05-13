@@ -98,6 +98,7 @@ typedef struct multiboot_header
 void outb(u16, u8);
 u8 inb(u16);
 u16 inw(u16);
+void dump_regs(registers_t*);
 
 extern int debug;
 extern multiboot_header_t *multiboot_header;

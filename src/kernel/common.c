@@ -16,6 +16,7 @@
 */
 
 #include <kernel/common.h>
+#include <lib/stdio.h>
 
 void outb(u16 port, u8 value)
 {
@@ -35,3 +36,19 @@ u16 inw(u16 port)
     asm volatile ("inw %1, %0" : "=a" (ret) : "dN" (port));
     return ret;
 }
+
+void dump_regs(registers_t *r)
+{
+   printf("\
+ds: %x \n\
+esi: %x, edi: %x, ebp: %x, esp: %x, eip: %x \n\
+eax: %x, ebx: %x, ecx: %x, edx: %x \n\
+int_no: %x, err_code: %x \n\
+cs: %x, eflags: %x, useresp: %x, ss: %x \n",
+   r->ds,
+   r->esi, r->edi, r->ebp, r->esp, r->eip, 
+   r->eax, r->ebx, r->ecx, r->edx,
+   r->int_no, r->err_code,
+   r->cs, r->eflags, r->useresp, r->ss);
+}
+

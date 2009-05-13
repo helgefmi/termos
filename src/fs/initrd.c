@@ -68,7 +68,7 @@ size_t initrd_read(FILE *file, void *buf, size_t len)
         len = node->v_size - file->f_offset;
 
     size_t ret = len;
-    const char *src = (const char *)  mp->data_start + initrd_node->data;
+    const char *src = (const char *)  mp->data_start + initrd_node->data + file->f_offset;
     char *dst = (char *) buf;
     while (len)
     {

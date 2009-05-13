@@ -145,7 +145,7 @@ int vfs_unmount(struct vnode *node)
 
     if (!ret)
     {
-        btree_delete(node->v_vfs->vfs_mounts, node->v_inode);
+        btree_delete(node->v_vfs->vfs_mounts, (void*) node->v_inode);
         vput(m_node);
     }
 
@@ -172,7 +172,7 @@ int vfs_mount(struct vnode *node, int fsnum, u32 dev, u32 flags)
 
     if (!ret)
     {
-        btree_insert(node->v_vfs->vfs_mounts, node->v_inode, new_vfs);
+        btree_insert(node->v_vfs->vfs_mounts, (void*) node->v_inode, new_vfs);
         vget(new_root);
     }
 
@@ -181,7 +181,7 @@ int vfs_mount(struct vnode *node, int fsnum, u32 dev, u32 flags)
 
 inline struct vnode *get_real_node(struct vnode *node)
 {
-    struct vfs *vfs_mounted = btree_lookup(node->v_vfs->vfs_mounts, node->v_inode);
+    struct vfs *vfs_mounted = btree_lookup(node->v_vfs->vfs_mounts, (void*) node->v_inode);
     if (vfs_mounted)
         return vfs_mounted->v_root;
 

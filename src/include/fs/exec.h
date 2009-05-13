@@ -15,31 +15,12 @@
  * along with TermOS.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _DEVFS_H
-#define _DEVFS_H
+#ifndef _EXEC_H
+#define _EXEC_H
 
-#include <kernel/common.h>
+#include <kernel/elf.h>
 #include <fs/vfs.h>
 
-struct devfs_node
-{
-    char name[256];
-    u32 inode;
-    u8 type;
-};
-
-struct devfs_mountpoint
-{
-    struct devfs_node *devfs_nodes;
-    u32 devfs_num_nodes;
-};
-
-void init_devfs();
-
-int devfs_mount(struct vfs*);
-int devfs_unmount(struct vfs*);
-size_t devfs_read(FILE*, void*, size_t);
-size_t devfs_write(FILE*, const void*, size_t);
-struct vnode *devfs_readdir(struct vnode*, u32);
+void v_exec(struct vnode*);
 
 #endif

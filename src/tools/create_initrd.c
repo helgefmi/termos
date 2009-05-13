@@ -138,14 +138,14 @@ void write_data_file(initrd_node_t *node)
         exit(5);
     }
 
-    char buf[1024];
+    char buf[8192];
     while (node->size)
     {
-        int bytes = fread(buf, 1, node->size, input);
+        int bytes = fread(buf, 1, 8192, input);
         if (!bytes)
         {
             perror("Error writing file");
-        exit(6);
+            exit(6);
         }
         node->size -= bytes;
         fwrite(buf, 1, bytes, output);

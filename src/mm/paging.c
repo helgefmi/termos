@@ -109,7 +109,7 @@ void init_paging()
     u32 end = multiboot_header->mem_upper * 1000;
 
     /* How many frames are needed to map the whole memory size */
-    nframes = (end >> 12); /* divided by 0x1000 */
+    nframes = (end / 0x1000);
 
     /* Our bitmap of which frames are free or not */
     frames = (u32*)kmalloc_a(BIT_IDX(nframes));
@@ -163,9 +163,9 @@ void switch_page_directory(page_directory_t *dir)
 
 page_t *get_page(u32 addr, int make, page_directory_t *dir)
 {
-    u32 pagenum = addr >> 12;  /* divided by 0x1000 */
-    u32 idx = pagenum >> 10;   /* divided by 1024 */
-    u32 off = pagenum & 0x3ff; /* modulus 1024 */
+    u32 pagenum = addr / 4096;
+    u32 idx = pagenum / 1024;
+    u32 off = pagenum % 1024;
 
     if (dir->tables[idx])
     {
@@ -221,6 +221,8 @@ void page_fault(registers_t* regs)
         printf(", fetch");
 
     printf(")\n");
+
+    dump_regs(regs);
 
     PANIC("Page Fault");
 }

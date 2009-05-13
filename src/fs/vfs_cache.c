@@ -44,13 +44,20 @@ struct vnode *vfs_vname(char* path)
         keyLen += partLen + 1;
 
         char *key2 = (char*) kmalloc(keyLen + 2);
-        strcpy(key2, key);
+        if (key)
+        {
+            strcpy(key2, key);
+        }
 
         key = key2;
 
         key[keyLen - partLen - 1] = '/';
         strcpy(&key[keyLen - partLen], part);
         key[keyLen + 1] = '\0';
+
+        char *tmp = key;
+        while (*tmp++)
+            printf("x");
 
         struct vnode *node = 0; //(struct vnode*) btree_lookup(v_cache, key);
         if (node == NULL)
@@ -71,6 +78,9 @@ struct vnode *vfs_vname(char* path)
 
         part = strtok(NULL, delim);
     }
+
+    printf("%s\n", key);
+    printf("hm: %x\n", key);
 
     return parent;
 }

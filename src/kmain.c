@@ -28,6 +28,7 @@
 #include <fs/initrd.h>
 #include <fs/vfs_cache.h>
 #include <fs/devfs/devfs.h>
+#include <fs/exec.h>
 #include <lib/string.h>
 
 multiboot_header_t *multiboot_header;
@@ -101,20 +102,27 @@ int kmain(multiboot_header_t *_multiboot_header)
 
     vfs_mount(v_root, FSTYPE_INITRD, initrd_start, VFS_READ);
     struct vnode *test_mnt = vfs_lookup(v_root, "test_mnt");
-    vfs_mount(test_mnt, FSTYPE_INITRD, initrd_start, VFS_READ);
-    vfs_unmount(test_mnt);
     vput(test_mnt);
 
     struct vnode *dev_node = vfs_lookup(v_root, "dev");
     vfs_mount(dev_node, FSTYPE_DEVFS, 0, VFS_READ | VFS_WRITE);
     vput(dev_node);
 
+    printf("%d\n", kheap->allocated);
+
     debug_vnode(v_root);
 
-    printf("%d\n", kheap->allocated);
-    test(v_root, 0);
-    printf("%d\n", kheap->allocated);
+    //test(v_root, 0);
 
+    struct vnode *bin = vfs_lookup(v_root, "bin");
+    struct vnode *test_binary = vfs_lookup(bin, "test2");
+
+    v_exec(test_binary);
+
+    vput(bin);
+    vput(test_binary);
+
+    printf("%d\n", kheap->allocated);
     printf("bai\n");
 
     cli();

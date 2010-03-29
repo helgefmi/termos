@@ -1,1 +1,4 @@
-qemu -curses -cdrom termos.iso -boot d -m 256
+#!/bin/sh
+
+qemu -curses -cdrom termos.iso -boot d -m 256 -no-kvm
+#bochs

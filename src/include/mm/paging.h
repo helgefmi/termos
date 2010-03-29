@@ -50,4 +50,8 @@ void page_fault(registers_t*);
 void alloc_frame(page_t*, int, int);
 void free_frame(page_t*);
 
+page_directory_t *clone_directory(page_directory_t*);
+extern page_directory_t *current_directory,
+                        *kernel_directory;
+
 #endif

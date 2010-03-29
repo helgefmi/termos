@@ -35,6 +35,7 @@ multiboot_header_t *multiboot_header;
 
 extern heap_t *kheap;
 
+#if 0
 void test(struct vnode *node, u32 pad)
 {
     u32 i = 0;
@@ -70,6 +71,7 @@ void test(struct vnode *node, u32 pad)
         vfs_close(fh);
     }
 }
+#endif
 
 int kmain(multiboot_header_t *_multiboot_header)
 {
@@ -110,20 +112,15 @@ int kmain(multiboot_header_t *_multiboot_header)
 
     printf("%d\n", kheap->allocated);
 
-    debug_vnode(v_root);
-
-    //test(v_root, 0);
-
     struct vnode *bin = vfs_lookup(v_root, "bin");
-    struct vnode *test_binary = vfs_lookup(bin, "test2");
+    struct vnode *test_binary = vfs_lookup(bin, "test");
 
     v_exec(test_binary);
 
-    vput(bin);
     vput(test_binary);
+    vput(bin);
 
-    printf("%d\n", kheap->allocated);
-    printf("bai\n");
+    printf("%d\nbai\n", kheap->allocated);
 
     cli();
     return 0x12345678;

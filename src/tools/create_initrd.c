@@ -10,8 +10,8 @@
 /* globals {{{ */
 struct stat stat_buf;
 FILE* output;
-u64 total_nodes = 0;
-u64 offset;
+u32 total_nodes = 0;
+u32 offset;
 /* }}} */
 
 void print_syntax() // {{{
@@ -43,7 +43,7 @@ initrd_node_t *read_header_dir(char* path, initrd_node_t *parent)
     initrd_node_t *node = (initrd_node_t*) calloc(sizeof(initrd_node_t), 1);
     node->type = TYPE_DIR;
     node->size = 0;
-    node->data = (u64)calloc(sizeof(u32) * 1024, 1);
+    node->data = (u32)calloc(sizeof(u32) * 1024, 1);
 
     strncpy(node->name, path, NAME_LEN);
     node->inode = ++total_nodes;
@@ -72,7 +72,7 @@ initrd_node_t *read_header_dir(char* path, initrd_node_t *parent)
         {
             child = read_header_file(dirent->d_name);
         }
-        ((u64 *) node->data)[node->size++] = (u64)child;
+        ((u32 *) node->data)[node->size++] = (u32)child;
     }
 
     if (parent)
@@ -93,7 +93,7 @@ void write_node(initrd_node_t *node)
 
 void write_header_file(initrd_node_t *node)
 {
-    node->data = (u64) offset;
+    node->data = (u32) offset;
     offset += node->size;
 
     write_node(node);
@@ -101,8 +101,8 @@ void write_header_file(initrd_node_t *node)
 
 void write_header_dir(initrd_node_t *node)
 {
-    u64 tmp = node->data;
-    node->data = (u64) offset;
+    u32 tmp = node->data;
+    node->data = (u32) offset;
     write_node(node);
     node->data = tmp;
 
@@ -127,7 +127,7 @@ void write_header_dir(initrd_node_t *node)
 /* write_data_* {{{ */
 void write_data_file(initrd_node_t *node)
 {
-    node->data = (u64)offset;
+    node->data = (u32)offset;
     offset += node->size;
 
     FILE *input;

@@ -117,42 +117,35 @@ void init_paging()
 
     kernel_directory = (page_directory_t*) kmalloc_a(sizeof(page_directory_t));
     memset(kernel_directory, 0, sizeof(page_directory_t));
-
-    current_directory = kernel_directory;
+    kernel_directory->physicalAddr = (u32) kernel_directory->tablesPhysical;
 
     u32 idx;
 
     /* Make the pages for our kernel heap now with the simple version of kmalloc
      * before paging is initialized. Allocation will happen after the identity map */
     for (idx = KHEAP_START; idx < KHEAP_START + KHEAP_INITIAL_SIZE; idx += 0x1000)
-    {
         get_page(idx, 1, kernel_directory);
-    }
 
     /* Identity map the (so far) used memory,
      * so addresses used will still be valid after enabling paging.
      * This works since we start on 0 both in get_page and find_first() */
     for (idx = 0; idx < mem_ptr; idx += 0x1000)
-    {
         alloc_frame( get_page(idx, 1, kernel_directory), 0, 0);
-    }
+
+    /* Allocate the kernel heap pages */
+    for (idx = KHEAP_START; idx < KHEAP_START + KHEAP_INITIAL_SIZE; idx += 0x1000)
+        alloc_frame(get_page(idx, 0, kernel_directory), 0, 0);
 
     register_isr_handler(14, page_fault);
 
     /* Enable paging */
     switch_page_directory(kernel_directory);
-
-    /* Allocate the kernel heap pages */
-    for (idx = KHEAP_START; idx < KHEAP_START + KHEAP_INITIAL_SIZE; idx += 0x1000)
-    {
-        alloc_frame(get_page(idx, 0, kernel_directory), 0, 0);
-    }
 }
 
 void switch_page_directory(page_directory_t *dir)
 {
     current_directory = dir;
-    asm volatile("mov %0, %%cr3":: "r"(dir->tablesPhysical));
+    asm volatile("mov %0, %%cr3":: "r"(dir->physicalAddr));
 
     u32 cr0;
     asm volatile("mov %%cr0, %0": "=r"(cr0));
@@ -175,12 +168,8 @@ page_t *get_page(u32 addr, int make, page_directory_t *dir)
     {
         u32 phys;
 
-        //printf("Creating a new page table\n");
-
         dir->tables[idx] = (page_table_t*) kmalloc_ap(sizeof(page_table_t), &phys);
         memset(dir->tables[idx], 0, sizeof(page_table_t));
-
-        //printf("asked for: %x, phys: %x addr: %x\n", addr, phys, dir->tables[idx]);
 
         dir->tablesPhysical[idx] = phys | 0x7;
 
@@ -190,6 +179,66 @@ page_t *get_page(u32 addr, int make, page_directory_t *dir)
     PANIC("No page to get in get_page()!");
     
     return 0;
+}
+
+page_directory_t *clone_directory(page_directory_t *src)
+{
+    u32 phys;
+    page_directory_t *dst = (page_directory_t*) kmalloc_ap(sizeof(page_directory_t), &phys);
+    memset(dst, 0, sizeof(page_directory_t));
+    dst->physicalAddr = phys + ((u32)dst->tablesPhysical - (u32)dst);
+
+    int i, y;
+    for (i = 0; i < 1024; ++i)
+    {
+        if (!src->tables[i])
+            continue;
+
+        if (kernel_directory->tables[i])
+        {
+            dst->tables[i] = kernel_directory->tables[i];
+            dst->tablesPhysical[i] = kernel_directory->tablesPhysical[i];
+        }
+        else
+        {
+            dst->tables[i] = (page_table_t*) kmalloc_ap(sizeof(page_table_t), &phys);
+            memset(&dst->tables[i], 0, sizeof(page_table_t));
+            dst->tablesPhysical[i] = phys | 0x7;
+
+            for (y = 0; y < 1024; ++y)
+            {
+                if (!src->tables[i]->pages[y].frame)
+                    continue;
+
+                page_t *src_page = &src->tables[i]->pages[y],
+                       *dst_page = &dst->tables[i]->pages[y];
+
+                alloc_frame(dst_page, 0, 0);
+                dst_page->present = src_page->present;
+                dst_page->rw = src_page->rw;
+                dst_page->user = src_page->user;
+                dst_page->accessed = src_page->accessed;
+                dst_page->dirty = src_page->dirty;
+
+                void *copy_from = (void*) (src_page->frame * 0x1000);
+                void *copy_to = (void*) (dst_page->frame * 0x1000);
+
+                asm volatile("cli\n"
+                             "mov %cr0, %eax\n"
+                             "and %eax, 0x7FFFFFFF\n"
+                             "mov %eax, %cr0");
+
+                memcpy(copy_from, copy_to, 0x1000);
+
+                asm volatile("mov %cr0, %eax\n"
+                             "or %eax, 0x80000000\n"
+                             "mov %eax, %cr0\n"
+                             "sti");
+            }
+        }
+    }
+
+    return dst;
 }
 
 void page_fault(registers_t* regs)

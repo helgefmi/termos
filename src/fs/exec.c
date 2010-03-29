@@ -25,10 +25,7 @@
 #include <lib/stdio.h>
 #include <lib/string.h>
 
-extern page_directory_t *kernel_directory;
-
-extern u32 read_eip();
-
+#if 0
 static void debug_ehdr(struct elf_hdr *ehdr)
 {
     printf("--- ELF HEADER ---\nclass: %d\ntype: %d\nmachine: %d\nversion: %d\nentry: %x\nphoff: %d\nsphoff: %d\nflags:%d\nehsize: %d\nphentsize: %d\nphnum: %d\nshentsize: %d\nshnum: %d\nshstrndx: %d\n\n",
@@ -44,6 +41,7 @@ static void debug_phdr(struct prg_hdr *phdr)
         phdr->type, phdr->offset, phdr->vaddr, phdr->paddr,
         phdr->fileSize, phdr->memSize, phdr->flags, phdr->alignment);
 }
+#endif
 
 void v_exec(struct vnode *node)
 {
@@ -53,20 +51,20 @@ void v_exec(struct vnode *node)
     /* Read the ELF header */
     vfs_read(fh, buf, sizeof(struct elf_hdr));
     struct elf_hdr *ehdr = (struct elf_hdr*) buf;
-    debug_ehdr(ehdr);
+
     ASSERT(ehdr->phnum);
     ASSERT(ehdr->ident[EI_CLASS] == ELFCLASS32);
+    ASSERT(ehdr->entry);
 
     /* Read the PRG headers */
     vfs_read(fh, &buf[fh->f_offset], sizeof(struct prg_hdr) * ehdr->phnum);
     struct prg_hdr *phdr = (struct prg_hdr*) (buf + ehdr->phoff);
 
-    page_directory_t *page_directory = kernel_directory;
+    page_directory_t *curdir = kernel_directory;
 
     int i;
     for (i = 0;  i < ehdr->phnum; ++i)
     {
-        debug_phdr(&phdr[i]);
         if (phdr[i].type == PT_LOAD)
         {
             ASSERT(phdr[i].memSize);
@@ -83,7 +81,7 @@ void v_exec(struct vnode *node)
             u32 vaddr = phdr[i].vaddr;
             while (vaddr <= phdr[i].vaddr + phdr[i].memSize)
             {
-                alloc_frame(get_page(vaddr, 1, page_directory), 0, writable);
+                alloc_frame(get_page(vaddr, 1, curdir), 0, writable);
                 vaddr += 0x1000;
             }
 
@@ -93,42 +91,10 @@ void v_exec(struct vnode *node)
 
             memcpy((void*) phdr[i].vaddr, &buf[phdr[i].offset], phdr[i].fileSize);
         }
-        else
-        {
-            //PANIC("Unknown header type!!");
-        }
     }
 
     vfs_close(fh);
 
-    /* Do the actual execution */
-    int first = 1;
-    u32 eip = read_eip();
-
-    if (first)
-    {
-        first = 0;
-        asm ("push %0\n"
-             "jmp *%1\n"
-            :
-            : "r" (eip), "r" (ehdr->entry));
-    }
-    else
-        printf("eax: %x\n", eip);
-
-    /* Free the frames this application used. */
-    for (i = 0;  i < ehdr->phnum; ++i)
-    {
-        if (phdr[i].type == PT_LOAD)
-        {
-            u32 vaddr = phdr[i].vaddr;
-            while (vaddr <= phdr[i].vaddr + phdr[i].memSize)
-            {
-                free_frame(get_page(vaddr, 0, page_directory));
-                vaddr += 0x1000;
-            }
-        }
-    }
-
     kfree(ehdr);
+    kfree(buf);
 }

@@ -103,4 +103,9 @@ void dump_regs(registers_t*);
 extern int debug;
 extern multiboot_header_t *multiboot_header;
 
+extern u32 read_eip();
+extern u32 read_esp();
+extern u32 read_ebp();
+
+
 #endif

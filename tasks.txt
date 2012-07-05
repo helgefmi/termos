@@ -1,0 +1,15 @@
+create_thread (void(*)() callback)
+1. kopier kernel page directory
+2. lag ny stack i den nye pdir
+3. set eip til &callback
+4. legg til i tasks
+    * parent pid = "current task" pid
+
+read_and_execute_file (vfs_node *node)
+1. les filen og putt i minnet
+2. hopp til entry point
+
+execve (char *path)
+1. finn fram til vfs_node'en til path
+2. push den på stacken og kall create_thread(read_and_execute_file)
+3. sett sin egen task til sleeping

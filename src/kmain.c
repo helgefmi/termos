@@ -113,7 +113,7 @@ int kmain(multiboot_header_t *_multiboot_header)
     printf("%d\n", kheap->allocated);
 
     struct vnode *bin = vfs_lookup(v_root, "bin");
-    struct vnode *test_binary = vfs_lookup(bin, "test");
+    struct vnode *test_binary = vfs_lookup(bin, "test2");
 
     v_exec(test_binary);
 

@@ -93,8 +93,12 @@ void v_exec(struct vnode *node)
         }
     }
 
+
     vfs_close(fh);
 
-    kfree(ehdr);
+    int (*f)() = (int(*)())ehdr->entry;
+    int res = f();
+    printf("%x\n", res);
+
     kfree(buf);
 }
